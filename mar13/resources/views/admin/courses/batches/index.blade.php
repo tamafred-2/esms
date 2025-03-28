@@ -22,32 +22,32 @@
                         <div class="card h-100 border-0 shadow-sm batch-card">
                             <div class="card-body">
                                 <!-- Batch Header -->
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h5 class="card-title mb-1">{{ $batch->batch_name }}</h5>
-                                        @php
-                                            $now = \Carbon\Carbon::now();
-                                            $status = 'pending';
-                                            $statusClass = 'bg-warning';
-                                            $statusIcon = 'bi-clock';
-                                            
-                                            if ($now->between($batch->start_date, $batch->end_date)) {
-                                                $status = 'ongoing';
-                                                $statusClass = 'bg-success';
-                                                $statusIcon = 'bi-play-fill';
-                                            } elseif ($now->isAfter($batch->end_date)) {
-                                                $status = 'completed';
-                                                $statusClass = 'bg-secondary';
-                                                $statusIcon = 'bi-check2-all';
-                                            }
-                                        @endphp
-                                        <span class="badge {{ $statusClass }} rounded-pill">
-                                            <i class="bi {{ $statusIcon }} me-1"></i>
-                                            {{ ucfirst($status) }}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="dropdown">
+                                 <div class="d-flex justify-content-between align-items-start mb-3 batch-item" data-course-id="{{ $course->id }}">
+                                     <div>
+                                         <h5 class="card-title mb-1">{{ $batch->batch_name }}</h5>
+                                         @php
+                                             $now = \Carbon\Carbon::now();
+                                             $status = 'pending';
+                                             $statusClass = 'bg-warning';
+                                             $statusIcon = 'bi-clock';
+                                             
+                                             if ($now->between($batch->start_date, $batch->end_date)) {
+                                                 $status = 'ongoing';
+                                                 $statusClass = 'bg-success';
+                                                 $statusIcon = 'bi-play-fill';
+                                             } elseif ($now->isAfter($batch->end_date)) {
+                                                 $status = 'completed';
+                                                 $statusClass = 'bg-secondary';
+                                                 $statusIcon = 'bi-check2-all';
+                                             }
+                                         @endphp
+                                         <span class="badge {{ $statusClass }} rounded-pill">
+                                             <i class="bi {{ $statusIcon }} me-1"></i>
+                                             {{ ucfirst($status) }}
+                                         </span>
+                                     </div>
+
+                                     <div class="dropdown">
                                         <button class="btn btn-link text-dark p-0" 
                                                 type="button" 
                                                 data-bs-toggle="dropdown"
@@ -55,31 +55,21 @@
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <button class="dropdown-item edit-batch" 
-                                                        onclick="event.stopPropagation();"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#editBatchModal{{ $batch->id }}"
-                                                        data-batch-id="{{ $batch->id }}"
-                                                        data-batch-name="{{ $batch->batch_name }}"
-                                                        data-start-date="{{ $batch->start_date->format('Y-m-d') }}"
-                                                        data-max-students="{{ $batch->max_students }}">
-                                                    <i class="bi bi-pencil-square me-2"></i>Edit
-                                                </button>
-                                            </li>
+                                            <!-- Delete Batch button -->
                                             @if($batch->enrollments()->count() == 0)
                                                 <li>
-                                                    <button class="dropdown-item text-danger delete-batch" 
-                                                            onclick="event.stopPropagation();"
-                                                            data-batch-id="{{ $batch->id }}"
-                                                            data-batch-name="{{ $batch->batch_name }}">
-                                                        <i class="bi bi-trash me-2"></i>Delete
-                                                    </button>
+                                                <button class="dropdown-item text-danger delete-batch" 
+                                                    onclick="event.stopPropagation();"
+                                                    data-batch-id="{{ $batch->id }}"
+                                                    data-batch-name="{{ $batch->batch_name }}"
+                                                    data-course-id="{{ $course->id }}">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </button>
                                                 </li>
                                             @endif
                                         </ul>
                                     </div>
-                                </div>
+                                 </div>
 
                                 <!-- Dates Section -->
                                 <div class="mb-3">
@@ -411,74 +401,42 @@
                 
                 const batchId = this.dataset.batchId;
                 const batchName = this.dataset.batchName;
+                const courseId = this.dataset.courseId;
         
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: `You are about to delete ${batchName}. This action cannot be undone.`,
+                    text: `You are about to delete batch "${batchName}". This action cannot be undone.`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: 'var(--primary-color)',
+                    confirmButtonColor: '#dc3545',
                     cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const form = document.createElement('form');
                         form.method = 'POST';
-                        form.action = `/admin/course/{{ $course->id }}/batches/${batchId}`;
+                        form.action = `/admin/course/${courseId}/batches/${batchId}`;
                         
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = '_token';
+                        csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+                        
                         const methodInput = document.createElement('input');
                         methodInput.type = 'hidden';
                         methodInput.name = '_method';
                         methodInput.value = 'DELETE';
                         
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = csrfToken;
-                        
-                        form.appendChild(methodInput);
                         form.appendChild(csrfInput);
+                        form.appendChild(methodInput);
+                        document.body.appendChild(form);
                         
-                        fetch(form.action, {
-                            method: 'POST',
-                            body: new FormData(form),
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Deleted!',
-                                    text: data.message,
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                }).then(() => {
-                                    window.location.reload();
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error!',
-                                    text: data.message
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error!',
-                                text: 'Something went wrong!'
-                            });
-                        });
+                        form.submit();
                     }
                 });
             });
         });
+        
     });
     </script>
     @endpush

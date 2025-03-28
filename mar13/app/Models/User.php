@@ -121,8 +121,7 @@ class User extends Authenticatable
     
     public function schools()
     {
-        return $this->belongsToMany(School::class, 'school_user')
-                    ->withPivot('role', 'is_active');
+        return $this->belongsToMany(School::class, 'school_user')->withPivot('is_active');
     }
 
     public function staffPositions()

@@ -491,49 +491,66 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle Remove Staff
     document.querySelectorAll('.remove-staff').forEach(button => {
         button.addEventListener('click', function() {
-            const staffId = this.getAttribute('data-staff-id');
-            const staffName = this.getAttribute('data-staff-name');
-
+            const staffId = this.dataset.staffId;
+            const staffName = this.dataset.staffName;
+            const schoolId = this.dataset.schoolId;
+    
             Swal.fire({
-                title: 'Remove Staff Member?',
-                html: `Are you sure you want to remove <strong>${staffName}</strong> from this school?`,
+                title: 'Are you sure?',
+                text: `You are about to remove ${staffName} from this school.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, remove',
-                cancelButtonText: 'Cancel'
+                confirmButtonText: 'Yes, remove'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin/school/{{ $school->id }}/staff/${staffId}`, {
-                        method: 'DELETE',
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Removing staff...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+    
+                    // Send remove request
+                    fetch(`/admin/school/${schoolId}/remove-staff/${staffId}`, {
+                        method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json'
-                        }
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            _method: 'DELETE'
+                        })
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
                             Swal.fire({
-                                title: 'Removed!',
-                                text: data.message,
                                 icon: 'success',
-                                timer: 1500,
-                                showConfirmButton: false
+                                title: 'Success!',
+                                text: data.message || 'Staff removed successfully',
+                                showConfirmButton: false,
+                                timer: 1500
                             }).then(() => {
                                 window.location.reload();
                             });
                         } else {
-                            throw new Error(data.message);
+                            throw new Error(data.message || 'Failed to remove staff');
                         }
                     })
                     .catch(error => {
-                        Swal.fire(
-                            'Error!',
-                            error.message,
-                            'error'
-                        );
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Something went wrong!'
+                        });
                     });
                 }
             });
@@ -662,4 +679,317 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.getElementById('addSchoolForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
+    // Reset previous error messages
+    document.querySelectorAll('.invalid-feedback').forEach(element => {
+        element.textContent = '';
+    });
+    document.querySelectorAll('.form-control').forEach(element => {
+        element.classList.remove('is-invalid');
+    });
+
+    const formData = new FormData(this);
+
+    fetch('{{ route("dashboard.storeSchool") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            Swal.fire({
+                title: 'Success!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Reload the page or update the schools list
+                    window.location.reload();
+                }
+            });
+
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('schoolModal'));
+            modal.hide();
+            
+            // Reset the form
+            this.reset();
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    })
+    .catch(error => {
+        if (error.response && error.response.status === 422) {
+            // Validation errors
+            const errors = error.response.data.errors;
+            Object.keys(errors).forEach(field => {
+                const input = document.getElementById(field);
+                const errorDisplay = document.getElementById(field + 'Error');
+                if (input && errorDisplay) {
+                    input.classList.add('is-invalid');
+                    errorDisplay.textContent = errors[field][0];
+                }
+            });
+        } else {
+            // General error
+            Swal.fire({
+                title: 'Error!',
+                text: 'An unexpected error occurred. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+});
+
+// Optional: Preview image before upload
+document.getElementById('logo_path').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) { // 2MB in bytes
+            Swal.fire({
+                title: 'Error!',
+                text: 'File size must not exceed 2MB',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            this.value = ''; // Clear the file input
+            return;
+        }
+        
+        if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please select a valid image file (JPEG, PNG, or JPG)',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            this.value = ''; // Clear the file input
+            return;
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const assignStaffForm = document.getElementById('assignStaffForm');
+    
+    if (assignStaffForm) {
+        assignStaffForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const staffId = document.getElementById('staff_id').value;
+            if (!staffId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Please select a staff member'
+                });
+                return;
+            }
+
+            // Show loading state
+            Swal.fire({
+                title: 'Assigning staff...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Create form data
+            const formData = new FormData(this);
+
+            // Send request
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close the modal first
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('assignStaffModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message,
+                        showConfirmButton: true,
+                        timer: 1500
+                    }).then(() => {
+                        // Reload the page after the success message
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to assign staff');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Failed to assign staff'
+                });
+            });
+        });
+    }
+    // Handle staff removal
+    document.querySelectorAll('.remove-staff').forEach(button => {
+        button.addEventListener('click', function() {
+            const staffId = this.dataset.staffId;
+            const staffName = this.dataset.staffName;
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to remove ${staffName} from this school.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, remove'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Removing staff...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Send remove request
+                    fetch(`/admin/school/${schoolId}/remove-staff/${staffId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: data.message || 'Staff removed successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Failed to remove staff');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Something went wrong!'
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-sector').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const sectorId = this.dataset.sectorId;
+            const sectorName = this.dataset.sectorName;
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete sector "${sectorName}". This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                    fetch(`/admin/sectors/${sectorId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: data.message || 'Sector has been deleted successfully.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Failed to delete sector');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Something went wrong!'
+                        });
+                    });
+                }
+            });
+        });
+    });
+});

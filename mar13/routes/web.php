@@ -57,7 +57,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/{sector}', [SectorController::class, 'show'])->name('show');
             Route::get('/{sector}/edit', [SectorController::class, 'edit'])->name('edit');
             Route::put('/{sector}', [SectorController::class, 'update'])->name('update');
-            Route::delete('/{sector}', [SectorController::class, 'destroy'])->name('destroy');
+            Route::delete('/{sector}', [SectorController::class, 'destroySector'])->name('destroy');
         });
 
         // Events Routes
@@ -88,9 +88,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/{school}/students', [DashboardController::class, 'students'])->name('students');
 
             // Staff management routes
-            Route::post('/{school}/staff', [DashboardController::class, 'assignStaff'])->name('assign-staff');
-            Route::put('/{school}/staff/{staff}', [DashboardController::class, 'updateStaffPosition'])->name('update-staff');
-            Route::delete('/{school}/staff/{staff}', [DashboardController::class, 'removeStaff'])->name('remove-staff');
+            Route::post('/{school}/assign-staff', [DashboardController::class, 'assignStaff'])
+                ->name('assign-staff');
+            Route::delete('/{school}/remove-staff/{staffId}', [DashboardController::class, 'removeStaff'])
+                ->name('remove-staff');
         });
         // Course Routes
         Route::prefix('course')->name('course.')->group(function () {
@@ -125,4 +126,10 @@ Route::fallback(function () {
     return Auth::check() && Auth::user()->usertype === 'admin'
         ? redirect()->route('admin.dashboard')->with('error', 'Page not found.')
         : redirect()->route('login')->with('error', 'Page not found.');
+});
+
+
+
+Route::get('/test', function () {
+    return view('test');
 });

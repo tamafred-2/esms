@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Event;
 use App\Models\Course;
 use App\Models\Staff;
+use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -372,8 +373,8 @@ public function storeEvent(Request $request)
             $data = $request->except('logo_path');
             
             if ($request->hasFile('logo_path')) {
-                $path = $request->file('logo_path')->store('school-logos', 'images');
-                $data['logo_path'] = 'images/' . $path;
+                $path = $request->file('logo_path')->store('school-logos', 'public');
+                $data['logo_path'] = $path;
             }
     
             $school = School::create($data);
@@ -461,47 +462,88 @@ public function storeEvent(Request $request)
         }
     }
 
-    public function destroySchool(School $school)
+    public function destroySchool($id)
     {
         try {
-            DB::beginTransaction();
-
-            // Delete school logo if exists
-            if ($school->logo_path) {
+            $school = School::findOrFail($id);
+            
+            // Delete the school logo if it exists
+            if ($school->logo_path && Storage::disk('public')->exists($school->logo_path)) {
                 Storage::disk('public')->delete($school->logo_path);
             }
-
+            
             $school->delete();
-
-            DB::commit();
-
+    
             return response()->json([
                 'success' => true,
-                'message' => 'School deleted successfully!'
+                'message' => 'School deleted successfully'
             ]);
-
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('School deletion failed: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete school. Please try again.'
+                'message' => 'Failed to delete school: ' . $e->getMessage()
             ], 500);
         }
     }
 
+    public function destroyBatch(Course $course, Batch $batch)
+    {
+        try {
+            // Check if the batch belongs to the course
+            if ($batch->course_id !== $course->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This batch does not belong to the specified course.'
+                ], 403);
+            }
+
+            // Check for enrollments using the Enrollment model directly
+            $enrollmentCount = BatchEnrollment::where('batch_id', $batch->id)->count();
+            
+            if ($enrollmentCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete batch with enrolled students.'
+                ], 403);
+            }
+
+            // Delete the batch
+            $batch->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Batch deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Batch deletion error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the batch.'
+            ], 500);
+        }
+    }
     public function showSchool(School $school)
     {
-        $icon = '<i class="bi bi-building me-2"></i> School Details'; // Add this line
+        $icon = '<i class="bi bi-building me-2"></i> School Details';
         $button = '<a href="' . route('admin.dashboard') . '" class="btn btn-custom" style="color: white;"><i class="bi bi-arrow-left"></i> Back to Schools</a>';
-        $availableStaff = User::where('usertype', 'staff')->whereDoesntHave('schools', function($query) use ($school) {
-            $query->where('school_id', $school->id);
-        })->get();
-        $courses = Course::where('school_id', $school->id)->paginate(9);
-        return view('showschool', compact('school', 'availableStaff', 'icon', 'button', 'courses'));
+        
+        // Get available staff (users with staff usertype who aren't already assigned to this school)
+        $availableStaff = User::where('usertype', 'staff')
+            ->whereDoesntHave('schools', function($query) use ($school) {
+                $query->where('school_id', $school->id);
+            })
+            ->orderBy('firstname')
+            ->get();
+        
+        return view('showschool', compact(
+            'school',
+            'availableStaff',
+            'icon',
+            'button'
+        ));
     }
-
+    
     public function students(School $school, Request $request)
     {
         $query = $school->students();
@@ -598,38 +640,6 @@ public function storeEvent(Request $request)
         }
     }
     
-    public function assignStaff(Request $request, School $school)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'position' => 'required|string',
-            'department' => 'nullable|string',
-            'employee_id' => 'nullable|string|unique:staff,employee_id',
-            'date_hired' => 'nullable|date',
-            'qualifications' => 'nullable|string',
-            'responsibilities' => 'nullable|string',
-        ]);
-    
-        try {
-            Staff::create([
-                'user_id' => $request->user_id,
-                'school_id' => $school->id,
-                'position' => $request->position,
-                'department' => $request->department,
-                'employee_id' => $request->employee_id,
-                'date_hired' => $request->date_hired,
-                'qualifications' => $request->qualifications,
-                'responsibilities' => $request->responsibilities,
-                'employment_status' => 'active',
-                'is_active' => true
-            ]);
-    
-            return redirect()->back()->with('success', 'Staff assigned successfully');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to assign staff: ' . $e->getMessage());
-        }
-    }
-    
     
     public function updateStaffPosition(Request $request, School $school, Staff $staff)
     {
@@ -653,28 +663,75 @@ public function storeEvent(Request $request)
             ], 422);
         }
     }
-    
-    public function removeStaff(School $school, Staff $staff)
+
+    public function removeStaff(School $school, $staffId)
     {
         try {
-            $staff->deactivate();
+            // Check if staff exists and is assigned to the school
+            $staff = $school->users()->where('user_id', $staffId)->first();
             
-            // If user has no other active staff positions, update role
-            if (!Staff::where('user_id', $staff->user_id)
-                      ->where('is_active', true)
-                      ->exists()) {
-            User::where('id', $staff->user_id)->update(['usertype' => 'user']);
+            if (!$staff) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Staff is not assigned to this school'
+                ]);
             }
+    
+            // Remove the staff from the school
+            $school->users()->detach($staffId);
     
             return response()->json([
                 'success' => true,
-                'message' => 'Staff member removed successfully!'
+                'message' => 'Staff removed successfully'
             ]);
         } catch (\Exception $e) {
+            Log::error('Staff removal error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error removing staff member.'
-            ], 422);
+                'message' => 'Failed to remove staff'
+            ]);
+        }
+    }
+    
+
+    public function assignStaff(Request $request, School $school)
+    {
+        try {
+            $validated = $request->validate([
+                'staff_id' => 'required|exists:users,id'
+            ]);
+
+            $user = User::find($validated['staff_id']);
+            
+            // Verify the user is a staff member
+            if ($user->usertype !== 'staff') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected user is not a staff member'
+                ]);
+            }
+
+            // Check if staff is already assigned
+            if ($school->users()->where('user_id', $validated['staff_id'])->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Staff member is already assigned to this school'
+                ]);
+            }
+
+            // Assign staff to school
+            $school->users()->attach($validated['staff_id']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff assigned successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Staff assignment error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign staff: ' . $e->getMessage()
+            ]);
         }
     }
 

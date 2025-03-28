@@ -13,23 +13,12 @@ return new class extends Migration
             if (!Schema::hasTable('school_user')) {
                 Schema::create('school_user', function (Blueprint $table) {
                     $table->id();
-                    // First create the columns
-                    $table->unsignedBigInteger('school_id');
-                    $table->unsignedBigInteger('user_id');
-                    $table->string('role')->default('student');
+                    
+                    // Create the columns
+                    $table->foreignId('school_id')->constrained()->onDelete('cascade');
+                    $table->foreignId('user_id')->constrained()->onDelete('cascade');
                     $table->boolean('is_active')->default(true);
                     $table->timestamps();
-
-                    // Then add the foreign key constraints
-                    $table->foreign('school_id')
-                          ->references('id')
-                          ->on('schools')
-                          ->onDelete('cascade');
-                          
-                    $table->foreign('user_id')
-                          ->references('id')
-                          ->on('users')
-                          ->onDelete('cascade');
 
                     // Add unique constraint
                     $table->unique(['school_id', 'user_id']);

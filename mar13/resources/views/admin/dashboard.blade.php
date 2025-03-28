@@ -256,33 +256,29 @@
         </div> 
     </div>
     <hr>
+    
     <!-- Schools Section -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4" style="padding: 2%;">
                 <h5 class="section-title">Schools</h5>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#schoolModal">
-                    Add School
+                    <i class="bi bi-plus-circle me-2"></i>Add School
                 </button>
             </div>
-            
+    
             <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3" style="padding: 2%;">
                 @forelse($schools as $school)
                     <div class="col">
-                        <div class="card school-card h-60">
+                        <div class="card school-card h-100 shadow-sm">
                             <div class="logo-container">
-                                @if($school->logo_path)
-                                    <img src="{{ asset($school->logo_path) }}" 
-                                         alt="{{ $school->name }}" 
-                                         class="school-logo"
-                                         onerror="this.onerror=null; this.src='{{ asset(';public;/images;/default-logo.png;') }}';">
-                                @else
-                                    <div class="default-logo">
-                                        <i class="bi bi-building text-secondary"></i>
-                                    </div>
-                                @endif
+                            @if($school->logo_path)
+                                <img src="{{ asset('storage/' . $school->logo_path) }}" 
+                                    alt="{{ $school->name }}" 
+                                    class="school-logo">
+                            @endif
                             </div>
-                
+    
                             <div class="card-body p-3">
                                 <h6 class="school-name text-center mb-2">{{ $school->name }}</h6>
                                 <div class="school-info">
@@ -305,27 +301,19 @@
                                         <i class="bi bi-telephone-fill"></i>
                                         <span>{{ $school->contact_number ?? 'No contact number' }}</span>
                                     </div>
-                                    <div class="info-item">
-                                        <i class="bi bi-people-fill"></i>
-                                        <span>{{ $school->students_count ?? 0 }} Students</span>
-                                    </div>
                                 </div>
                             </div>
-                            <div class="card-footer p-2">
-                                <div class="btn-group btn-group-sm w-100">
-                                    <!-- Edit Button -->
+    
+                            <div class="card-footer bg-transparent p-2">
+                                <div class="btn-group w-100">
                                     <a href="{{ route('admin.school.edit', $school->id) }}" 
-                                       class="btn btn-outline-primary">
+                                       class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    
-                                    <!-- View Button -->
                                     <a href="{{ route('admin.school.show', $school->id) }}" 
-                                       class="btn btn-outline-info">
+                                       class="btn btn-outline-info btn-sm">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    
-                                    <!-- Delete Button -->
                                     <form action="{{ route('admin.school.destroy', $school->id) }}" 
                                           method="POST" 
                                           class="d-inline m-0"
@@ -333,9 +321,9 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="button" 
-                                                class="btn btn-outline-danger delete-school" 
-                                                data-school-id="{{ $school->id }}"
-                                                data-school-name="{{ $school->name }}">
+                                            class="btn btn-outline-danger btn-sm delete-school" 
+                                            data-school-id="{{ $school->id }}" 
+                                            data-school-name="{{ $school->name }}">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -348,19 +336,23 @@
                         <div class="alert alert-info text-center">
                             <i class="bi bi-info-circle me-2"></i>
                             No schools found. 
-                            <a href="{{ route('admin.school.create') }}" class="alert-link">
+                            <button type="button" class="btn btn-link p-0 m-0 align-baseline" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#schoolModal">
                                 Add a new school
-                            </a>
+                            </button>
                         </div>
                     </div>
                 @endforelse
             </div>
+    
             <!-- Schools pagination -->
             <div class="d-flex justify-content-center mt-4">
                 {{ $schools->appends(['event-page' => request()->get('event-page')])->links() }}
             </div>
         </div>
     </div>
+    
     <!-- School Details Modal -->
     <div class="modal fade" id="schoolDetailsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -759,14 +751,14 @@
 
         document.addEventListener('DOMContentLoaded', function() {
         // Delete school handler
-        document.querySelectorAll('.delete-school').forEach(button => {
+            document.querySelectorAll('.delete-school').forEach(button => {
             button.addEventListener('click', function() {
-                const schoolId = this.dataset.schoolId;
-                const schoolName = this.dataset.schoolName;
+                const schoolId = this.getAttribute('data-school-id');
+                const schoolName = this.getAttribute('data-school-name');
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    html: `You are about to delete <strong>${schoolName}</strong>.<br>This action cannot be undone!`,
+                    html: `You are about to delete <strong>${schoolName}</strong><br>This action cannot be undone!`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',
@@ -776,53 +768,37 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Create and submit form
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `/admin/school/${schoolId}`;
-                        
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = '{{ csrf_token() }}';
-                        
-                        const methodInput = document.createElement('input');
-                        methodInput.type = 'hidden';
-                        methodInput.name = '_method';
-                        methodInput.value = 'DELETE';
-                        
-                        form.appendChild(csrfInput);
-                        form.appendChild(methodInput);
-                        document.body.appendChild(form);
-                        
                         // Show loading state
                         Swal.fire({
                             title: 'Deleting...',
-                            html: 'Please wait...',
+                            text: 'Please wait',
                             allowOutsideClick: false,
-                            didOpen: () => {
+                            showConfirmButton: false,
+                            willOpen: () => {
                                 Swal.showLoading();
                             }
                         });
 
-                        // Submit the form
-                        fetch(form.action, {
-                            method: 'POST',
-                            body: new FormData(form),
+                        // Send DELETE request
+                        fetch(`/admin/school/${schoolId}`, {
+                            method: 'DELETE',
                             headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            }
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
                         })
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
                                 Swal.fire({
                                     title: 'Deleted!',
-                                    text: data.message || 'School has been deleted successfully.',
+                                    text: 'School has been deleted successfully.',
                                     icon: 'success',
                                     timer: 1500,
                                     showConfirmButton: false
                                 }).then(() => {
+                                    // Reload the page
                                     window.location.reload();
                                 });
                             } else {
@@ -832,12 +808,10 @@
                         .catch(error => {
                             Swal.fire({
                                 title: 'Error!',
-                                text: error.message || 'Something went wrong while deleting the school.',
-                                icon: 'error'
+                                text: error.message || 'Failed to delete school',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
                             });
-                        })
-                        .finally(() => {
-                            document.body.removeChild(form);
                         });
                     }
                 });

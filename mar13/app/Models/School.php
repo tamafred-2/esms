@@ -26,7 +26,9 @@ class School extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'school_user')->withPivot('role', 'is_active')->withTimestamps();
+        return $this->belongsToMany(User::class, 'school_user')
+                    ->withPivot('is_active')
+                    ->withTimestamps();
     }
 
     public function students()
@@ -50,7 +52,9 @@ class School extends Model
 
     public function staff()
     {
-        return $this->hasMany(Staff::class);
+        return $this->belongsToMany(User::class, 'school_user')
+                    ->where('users.usertype', 'staff')
+                    ->where('school_user.is_active', true);
     }
 
     // Get active staff

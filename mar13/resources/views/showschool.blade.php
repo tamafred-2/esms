@@ -49,13 +49,19 @@
                             </div>
                         </div>
                         <div class="d-flex gap-2">
+                            <button type="button" 
+                                    class="btn btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#assignStaffModal">
+                                <i class="bi bi-person-plus"></i> Assign Staff
+                            </button>
                             <a href="{{ route('admin.school.edit', $school->id) }}" 
-                               class="btn btn-outline-danger">
+                            class="btn btn-outline-danger">
                                 <i class="bi bi-pencil-square"></i> Edit
                             </a>
                             <form action="{{ route('admin.school.destroy', $school->id) }}" 
-                                  method="POST" 
-                                  onsubmit="return confirm('Are you sure you want to delete this school?');">
+                                method="POST" 
+                                onsubmit="return confirm('Are you sure you want to delete this school?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-danger">
@@ -479,6 +485,84 @@
             </div>
         </div>
     </div>
+    
+    <!-- Assign Staff Modal -->
+    <div class="modal fade" id="assignStaffModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manage School Staff</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Assign New Staff Section -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">Assign New Staff</h6>
+                        <form id="assignStaffForm" action="{{ route('admin.school.assign-staff', $school->id) }}" method="POST">
+                            @csrf
+                            <div class="form-group">
+                                <select class="form-select" id="staff_id" name="staff_id" required>
+                                    <option value="">Select Staff</option>
+                                    @foreach($availableStaff as $staff)
+                                        <option value="{{ $staff->id }}">
+                                            {{ $staff->firstname }} {{ $staff->lastname }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="bi bi-person-plus"></i> Assign Staff
+                            </button>
+                        </form>
+                    </div>
+    
+                    <!-- Currently Assigned Staff Section -->
+                    <div>
+                        <h6 class="mb-3">Currently Assigned Staff</h6>
+                        @if($school->users->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($school->users as $staff)
+                                            <tr>
+                                                <td>{{ $staff->firstname }} {{ $staff->lastname }}</td>
+                                                <td>{{ $staff->email }}</td>
+                                                <td>
+                                                    <button type="button" 
+                                                            class="btn btn-danger btn-sm remove-staff"
+                                                            data-staff-id="{{ $staff->id }}"
+                                                            data-staff-name="{{ $staff->firstname }} {{ $staff->lastname }}"
+                                                            data-school-id="{{ $school->id }}">
+                                                        <i class="bi bi-person-dash"></i> Remove
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>No staff members are currently assigned to this school.
+                            </div>
+                        @endif
+                    </div>
+                    
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -694,6 +778,7 @@
         }
     </script>
     @endpush
+    
 
     @push('scripts')
 <script>
