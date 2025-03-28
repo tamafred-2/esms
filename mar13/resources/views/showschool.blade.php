@@ -100,31 +100,37 @@
                                     <div class="dropdown">
                                         <button class="btn btn-link text-dark p-0" 
                                                 type="button" 
-                                                data-bs-toggle="dropdown">
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
-                                                <button class="dropdown-item" 
+                                                <button type="button" 
+                                                        class="dropdown-item add-course"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#editSectorModal{{ $sector->id }}">
-                                                    <i class="bi bi-pencil-square me-2"></i>Edit Sector
+                                                        data-bs-target="#addCourseModal"
+                                                        data-sector-id="{{ $sector->id }}"
+                                                        data-sector-name="{{ $sector->name }}">
+                                                    <i class="bi bi-plus-circle me-2"></i>Add Course
                                                 </button>
                                             </li>
                                             <li>
-                                                <button class="dropdown-item" 
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#addCourseModal"
-                                                        data-sector-id="{{ $sector->id }}">
-                                                    <i class="bi bi-plus-lg me-2"></i>Add Course
-                                                </button>
+                                                <a href="{{ route('admin.sectors.edit', $sector->id) }}" 
+                                                   class="dropdown-item">
+                                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                                </a>
                                             </li>
-                                            @if($sector->courses->count() == 0)
+                                            @php
+                                                $courseCount = \App\Models\Course::where('sector_id', $sector->id)->count();
+                                            @endphp
+                                            @if($courseCount == 0)
                                                 <li>
-                                                    <button class="dropdown-item text-danger delete-sector" 
+                                                    <button type="button" 
+                                                            class="dropdown-item text-danger delete-sector"
                                                             data-sector-id="{{ $sector->id }}"
                                                             data-sector-name="{{ $sector->name }}">
-                                                        <i class="bi bi-trash me-2"></i>Delete Sector
+                                                        <i class="bi bi-trash me-2"></i>Delete
                                                     </button>
                                                 </li>
                                             @endif
@@ -957,5 +963,97 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-sector');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const sectorId = this.getAttribute('data-sector-id');
+            const sectorName = this.getAttribute('data-sector-name');
+
+            Swal.fire({
+                title: 'Delete Sector',
+                text: `Are you sure you want to delete "${sectorName}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Get CSRF token
+                    const token = document.querySelector('meta[name="csrf-token"]').content;
+
+                    // Send delete request
+                    fetch(`/admin/sectors/${sectorId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(json => {
+                                throw new Error(json.message || 'Something went wrong');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: data.message || 'Sector deleted successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Failed to delete sector');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Something went wrong!'
+                        });
+                    });
+                }
+            });
+        });
+    });
+
+    // For debugging
+    console.log('Delete buttons found:', document.querySelectorAll('.delete-sector').length);
+});
+</script>
+@endpush
+
     
 </x-adminlayout>

@@ -7,6 +7,7 @@ use App\Models\School;
 use App\Models\User;
 use App\Models\Event;
 use App\Models\Course;
+use App\Models\Sector;
 use App\Models\Staff;
 use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
@@ -486,6 +487,39 @@ public function storeEvent(Request $request)
         }
     }
 
+    public function destroySector(Sector $sector)
+    {
+        try {
+            // Log attempt
+            Log::info('Attempting to delete sector: ' . $sector->id);
+
+            // Check if sector has any courses
+            $courseCount = Course::where('sector_id', $sector->id)->count();
+            
+            if ($courseCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete sector that has courses.'
+                ], 403);
+            }
+
+            // Delete the sector
+            $sector->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sector deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Sector deletion error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the sector: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
     public function destroyBatch(Course $course, Batch $batch)
     {
         try {

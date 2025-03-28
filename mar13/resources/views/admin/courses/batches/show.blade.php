@@ -97,10 +97,15 @@
             <div class="col-md-8">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Enrolled Students</h5>
+                    <h5 class="card-title mb-0">Enrolled Students</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#attendanceModal">
+                            <i class="bi bi-calendar-check"></i> Attendance
+                        </button>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#enrollStudentModal">
                             <i class="bi bi-plus-lg"></i> Add Student
                         </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         @if($enrollments->count() > 0)
@@ -163,7 +168,130 @@
             </div>
         </div>
     </div>
+    
+    <!-- Attendance Modal -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Time Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="attendanceForm">
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control" name="attendance_date" 
+                                        value="{{ date('Y-m-d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Schedule Time</label>
+                                    <input type="text" class="form-control" 
+                                        value="{{ $batch->schedule_time ?? '8:00 AM - 5:00 PM' }}" readonly>
+                                </div>
+                            </div>
+                        </div>
 
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th rowspan="2">Student Name</th>
+                                        <th colspan="3" class="text-center border-end">Morning</th>
+                                        <th colspan="3" class="text-center">Afternoon</th>
+                                        <th rowspan="2">Remarks</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Time In</th>
+                                        <th>Time Out</th>
+                                        <th class="border-end">Late (mins)</th>
+                                        <th>Time In</th>
+                                        <th>Time Out</th>
+                                        <th>Late (mins)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($enrollments as $enrollment)
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold">
+                                                        {{ $enrollment->lastname }}, {{ $enrollment->firstname }}
+                                                        {{ $enrollment->middlename ? substr($enrollment->middlename, 0, 1) . '.' : '' }}
+                                                    </span>
+                                                    <small class="text-muted">{{ $enrollment->email }}</small>
+                                                </div>
+                                            </td>
+                                            <!-- Morning Time -->
+                                            <td>
+                                                <input type="time" 
+                                                    class="form-control form-control-sm time-input morning-in" 
+                                                    name="morning_in_{{ $enrollment->id }}"
+                                                    data-student-id="{{ $enrollment->id }}"
+                                                    data-session="morning"
+                                                    step="60">
+                                            </td>
+                                            <td>
+                                                <input type="time" 
+                                                    class="form-control form-control-sm time-input morning-out" 
+                                                    name="morning_out_{{ $enrollment->id }}"
+                                                    data-student-id="{{ $enrollment->id }}"
+                                                    data-session="morning"
+                                                    step="60">
+                                            </td>
+                                            <td class="border-end">
+                                                <input type="number" 
+                                                    class="form-control form-control-sm minutes-late" 
+                                                    name="morning_late_{{ $enrollment->id }}"
+                                                    readonly>
+                                            </td>
+                                            <!-- Afternoon Time -->
+                                            <td>
+                                                <input type="time" 
+                                                    class="form-control form-control-sm time-input afternoon-in" 
+                                                    name="afternoon_in_{{ $enrollment->id }}"
+                                                    data-student-id="{{ $enrollment->id }}"
+                                                    data-session="afternoon"
+                                                    step="60">
+                                            </td>
+                                            <td>
+                                                <input type="time" 
+                                                    class="form-control form-control-sm time-input afternoon-out" 
+                                                    name="afternoon_out_{{ $enrollment->id }}"
+                                                    data-student-id="{{ $enrollment->id }}"
+                                                    data-session="afternoon"
+                                                    step="60">
+                                            </td>
+                                            <td>
+                                                <input type="number" 
+                                                    class="form-control form-control-sm minutes-late" 
+                                                    name="afternoon_late_{{ $enrollment->id }}"
+                                                    readonly>
+                                            </td>
+                                            <td>
+                                                <input type="text" 
+                                                    class="form-control form-control-sm" 
+                                                    name="remarks_{{ $enrollment->id }}"
+                                                    placeholder="Optional remarks">
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Attendance</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <!-- Add Student Modal -->
     <div class="modal fade" id="enrollStudentModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
@@ -363,6 +491,48 @@
             </div>
         </div>
     </div>
+
+
+    @push('styles')
+    <style>
+        /* Time input styling */
+        .time-input {
+            width: 100px;
+        }
+        
+        /* Minutes late input styling */
+        .minutes-late {
+            width: 80px;
+            background-color: #f8f9fa;
+        }
+        
+        /* Table styling */
+        .table thead th {
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        .border-end {
+            border-right: 2px solid #dee2e6;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .time-input, .minutes-late {
+                width: 100%;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+            }
+        }
+    </style>
+    @endpush
+    
     @push('styles')
     <style>
             /* Section Headers */
@@ -920,4 +1090,117 @@
         });
     </script>
     @endpush
+
+
+
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const attendanceForm = document.getElementById('attendanceForm');
+        const timeInputs = document.querySelectorAll('.time-input');
+        
+        // Schedule configuration (should come from your backend)
+        const schedule = {
+            morning: {
+                in: '08:00',
+                out: '12:00'
+            },
+            afternoon: {
+                in: '13:00',
+                out: '17:00'
+            }
+        };
+
+        // Function to convert time string to minutes
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return (hours * 60) + minutes;
+        }
+
+        // Function to calculate minutes late
+        function calculateMinutesLate(scheduleTime, actualTime) {
+            if (!actualTime) return 0;
+            
+            const scheduleMins = timeToMinutes(scheduleTime);
+            const actualMins = timeToMinutes(actualTime);
+            const diff = actualMins - scheduleMins;
+            return diff > 0 ? diff : 0;
+        }
+
+        // Handle time input changes
+        timeInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const studentId = this.dataset.studentId;
+                const session = this.dataset.session;
+                const isTimeIn = this.classList.contains(`${session}-in`);
+                
+                if (isTimeIn) {
+                    const scheduleTime = schedule[session].in;
+                    const minutesLate = calculateMinutesLate(scheduleTime, this.value);
+                    
+                    // Update minutes late field
+                    const minutesField = document.querySelector(`input[name="${session}_late_${studentId}"]`);
+                    if (minutesField) {
+                        minutesField.value = minutesLate;
+                    }
+                }
+            });
+        });
+
+        // Handle form submission
+        attendanceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Show loading state
+            Swal.fire({
+                title: 'Saving Attendance...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Collect form data
+            const formData = new FormData(this);
+
+            // Submit attendance data
+            fetch('{{ route("admin.course.batches.attendance.store", $batch) }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Attendance has been saved successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to save attendance');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Something went wrong while saving attendance',
+                    confirmButtonColor: '#3085d6'
+                });
+            });
+        });
+    });
+</script>
+@endpush
 </x-adminlayout>

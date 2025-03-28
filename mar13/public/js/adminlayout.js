@@ -923,13 +923,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.delete-sector').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
+    // Delete Sector functionality
+    const deleteSectorButtons = document.querySelectorAll('.delete-sector');
+    
+    deleteSectorButtons.forEach(button => {
+        button.addEventListener('click', function() {
             const sectorId = this.dataset.sectorId;
             const sectorName = this.dataset.sectorName;
 
@@ -954,14 +953,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
 
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
+                    // Send delete request
                     fetch(`/admin/sectors/${sectorId}`, {
                         method: 'DELETE',
                         headers: {
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
                         }
                     })
                     .then(response => response.json())
@@ -970,7 +968,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Deleted!',
-                                text: data.message || 'Sector has been deleted successfully.',
+                                text: data.message,
                                 showConfirmButton: false,
                                 timer: 1500
                             }).then(() => {
