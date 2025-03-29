@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Course extends Model
 {
@@ -26,37 +27,34 @@ class Course extends Model
         'afternoon_schedule' => 'array'
     ];
 
-    // Relationship with School
+    // Main relationship for batches
+    public function courseBatches()
+    {
+        return $this->hasMany(CourseBatch::class);
+    }
+
+    // Alias method to maintain compatibility
+    public function batches()
+    {
+        return $this->courseBatches();
+    }
+
+    // Other relationships
     public function school()
     {
         return $this->belongsTo(School::class);
     }
 
-    // Relationship with Sector
     public function sector()
     {
         return $this->belongsTo(Sector::class);
     }
 
-    // Relationship with Course Schedule
-    public function schedule()
-    {
-        return $this->hasOne(CourseSchedule::class);
-    }
-
-    // Relationship with Course Batches
-    public function batches()
-    {
-        return $this->hasMany(CourseBatch::class);
-    }
-
-    // Relationship with Staff (User)
     public function staff()
     {
         return $this->belongsTo(User::class, 'staff_id');
     }
-    
-    // Relationship with users (students enrolled in the course)
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'course_user')
@@ -64,88 +62,106 @@ class Course extends Model
             ->withPivot('status', 'enrolled_at');
     }
 
-    // Get active batches
+    // Batch-related methods
     public function activeBatches()
     {
-        return $this->batches()
+        return $this->courseBatches()
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now());
     }
 
-    // Get upcoming batches
     public function upcomingBatches()
     {
-        return $this->batches()
+        return $this->courseBatches()
             ->where('start_date', '>', now());
     }
 
-    // Get completed batches
     public function completedBatches()
     {
-        return $this->batches()
+        return $this->courseBatches()
             ->where('end_date', '<', now());
     }
 
-    // Get total enrolled students across all batches
+    // Attribute accessors
     public function getTotalEnrolledStudentsAttribute()
     {
-        return $this->batches()
-            ->withCount('enrollments')
-            ->get()
-            ->sum('enrollments_count');
+        try {
+            return $this->courseBatches()
+                ->withCount('enrollments')
+                ->get()
+                ->sum('enrollments_count');
+        } catch (\Exception $e) {
+            Log::error('Error in getTotalEnrolledStudentsAttribute: ' . $e->getMessage());
+            return 0;
+        }
     }
 
-    // Get available slots across all active batches
     public function getAvailableSlotsAttribute()
     {
-        $activeBatches = $this->activeBatches()->get();
-        $totalSlots = $activeBatches->sum('max_students');
-        $totalEnrolled = $activeBatches->sum(function($batch) {
-            return $batch->enrollments()->count();
+        try {
+            $activeBatches = $this->courseBatches()
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->get();
+
+            $totalSlots = $activeBatches->sum('max_students');
+            $totalEnrolled = $activeBatches->sum(function($batch) {
+                return $batch->enrollments()->count();
+            });
+
+            return max(0, $totalSlots - $totalEnrolled);
+        } catch (\Exception $e) {
+            Log::error('Error in getAvailableSlotsAttribute: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // Scopes for filtering
+    public function scopeActive($query)
+    {
+        return $query->whereHas('courseBatches', function($q) {
+            $q->where('start_date', '<=', now())
+              ->where('end_date', '>=', now());
         });
-        
-        return $totalSlots - $totalEnrolled;
     }
 
-    // Format schedule for display
-    public function getFormattedScheduleAttribute()
-    {
-        $morning = $this->morning_schedule;
-        $afternoon = $this->afternoon_schedule;
-
-        return sprintf(
-            'Morning: %s - %s, Afternoon: %s - %s',
-            $morning['in'] ?? 'N/A',
-            $morning['out'] ?? 'N/A',
-            $afternoon['in'] ?? 'N/A',
-            $afternoon['out'] ?? 'N/A'
-        );
-    }
-
-    // Scope for searching courses
-    public function scopeSearch($query, $search)
-    {
-        return $query->where('name', 'like', "%{$search}%")
-            ->orWhere('description', 'like', "%{$search}%");
-    }
-
-    // Scope for filtering by sector
-    public function scopeBySector($query, $sectorId)
-    {
-        return $query->where('sector_id', $sectorId);
-    }
-
-    // Scope for filtering by school
     public function scopeBySchool($query, $schoolId)
     {
         return $query->where('school_id', $schoolId);
     }
 
-    // Scope for courses with available slots
-    public function scopeWithAvailableSlots($query)
+    public function scopeBySector($query, $sectorId)
     {
-        return $query->whereHas('batches', function($query) {
-            $query->whereRaw('max_students > (SELECT COUNT(*) FROM enrollments WHERE batch_id = course_batches.id)');
+        return $query->where('sector_id', $sectorId);
+    }
+
+    // Helper methods
+    public function isActive()
+    {
+        return $this->courseBatches()
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->exists();
+    }
+
+    public function hasAvailableSlots()
+    {
+        return $this->available_slots > 0;
+    }
+
+    public function canEnroll()
+    {
+        return $this->isActive() && $this->hasAvailableSlots();
+    }
+
+    // Boot method for model events
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function($course) {
+            // Delete related batches when course is deleted
+            $course->courseBatches()->delete();
         });
     }
 }

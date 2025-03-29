@@ -6,31 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('batch_enrollments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('batch_id')->constrained('course_batches')->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('registration_status');
-            $table->string('delivery_mode');
-            $table->string('provider_type');
-            $table->string('region');
-            $table->string('province');
-            $table->string('congressional_district');
-            $table->string('municipality');
-            $table->string('status');
+            $table->string('registration_status')->nullable();
+            $table->string('delivery_mode')->nullable();
+            $table->string('provider_type')->nullable();
+            $table->string('region')->nullable();
+            $table->string('province')->nullable();
+            $table->string('congressional_district')->nullable();
+            $table->string('municipality')->nullable();
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('batch_enrollments');
     }

@@ -98,27 +98,27 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/', [CourseController::class, 'index'])->name('index');
             Route::get('/create', [CourseController::class, 'create'])->name('create');
             Route::post('/', [CourseController::class, 'store'])->name('store');
-            Route::get('/{course}', [CourseController::class, 'show'])->name('show'); // This was missing
+            Route::get('/{course}', [CourseController::class, 'show'])->name('show');
             Route::get('/{course}/edit', [CourseController::class, 'edit'])->name('edit');
             Route::put('/{course}', [CourseController::class, 'update'])->name('update');
             Route::delete('/{course}', [CourseController::class, 'destroy'])->name('destroy');
-        
+
             // Batch Routes
-            Route::prefix('batches')->name('batches.')->group(function () {
-                Route::get('/{course}/batches', [CourseController::class, 'showBatches'])->name('index');
-                Route::get('/{course}/batches/create', [CourseController::class, 'createBatch'])->name('create');
-                Route::post('/{course}/batches', [CourseController::class, 'storeBatch'])->name('store');
-                Route::get('/{course}/batches/{batch}', [CourseController::class, 'showBatch'])->name('show');
-                Route::get('/{course}/batches/{batch}/edit', [CourseController::class, 'editBatch'])->name('edit');
-                Route::put('/{course}/batches/{batch}', [CourseController::class, 'updateBatch'])->name('update');
-                Route::delete('/{course}/batches/{batch}', [CourseController::class, 'destroyBatch'])->name('destroy');
-                Route::post('/batches/{batch}/enroll', [CourseController::class, 'enrollStudent'])->name('enroll');
-        
-                            // Attendance Routes (Alternative Access)
-                Route::prefix('attendance')->name('attendance.')->group(function () {
-                    Route::post('/batches/{batch}/store', [AttendanceController::class, 'store'])->name('store');
-                    Route::get('/batches/{batch}/{date?}', [AttendanceController::class, 'show'])->name('show');
-                    Route::get('/batches/{batch}/report', [AttendanceController::class, 'report'])->name('report');
+            Route::prefix('{course}/batches')->name('batches.')->group(function () {
+                Route::get('/', [CourseController::class, 'showBatches'])->name('index');
+                Route::get('/create', [CourseController::class, 'createBatch'])->name('create');
+                Route::post('/', [CourseController::class, 'storeBatch'])->name('store');
+                Route::get('/{batch}', [CourseController::class, 'showBatch'])->name('show');
+                Route::get('/{batch}/edit', [CourseController::class, 'editBatch'])->name('edit');
+                Route::put('/{batch}', [CourseController::class, 'updateBatch'])->name('update');
+                Route::delete('/{batch}', [CourseController::class, 'destroyBatch'])->name('destroy');
+                Route::post('/{batch}/enroll', [CourseController::class, 'enrollStudent'])->name('enroll');
+            
+                // Attendance Routes
+                Route::prefix('{batch}/attendance')->name('attendance.')->group(function () {
+                    Route::post('/', [AttendanceController::class, 'store'])->name('store');
+                    Route::get('/', [AttendanceController::class, 'show'])->name('show');
+                    Route::put('/{date}', [AttendanceController::class, 'update'])->name('update');
                 });
             });
         });

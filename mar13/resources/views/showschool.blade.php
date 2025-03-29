@@ -130,7 +130,7 @@
                                                             class="dropdown-item text-danger delete-sector"
                                                             data-sector-id="{{ $sector->id }}"
                                                             data-sector-name="{{ $sector->name }}">
-                                                        <i class="bi bi-trash me-2"></i>Delete
+                                                        <i class="bi bi-trash me-2"></i>Delete Sector
                                                     </button>
                                                 </li>
                                             @endif
@@ -171,12 +171,12 @@
                                                                 </button>
                                                                 </li>
                                                                 <li>
-                                                                    <button class="dropdown-item text-danger delete-course" 
-                                                                            type="button"
-                                                                            data-course-id="{{ $course->id }}"
-                                                                            data-course-name="{{ $course->name }}">
-                                                                        <i class="bi bi-trash me-2"></i>Delete
-                                                                    </button>
+                                                                <button type="button" 
+                                                                    class="dropdown-item text-danger delete-course"
+                                                                    data-course-id="{{ $course->id }}"
+                                                                    data-course-name="{{ $course->name }}">
+                                                                    <i class="bi bi-trash me-2"></i>Delete Course
+                                                                </button>
                                                                 </li>
                                                             </ul>
                                                         </div>
@@ -787,273 +787,365 @@
     
 
     @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Prevent course link click when clicking dropdown or its items
-    document.querySelectorAll('.dropdown').forEach(dropdown => {
-        dropdown.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prevent course link click when clicking dropdown or its items
+        document.querySelectorAll('.dropdown').forEach(dropdown => {
+            dropdown.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
         });
-    });
 
-    // Handle edit course
-    document.querySelectorAll('.edit-course').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const courseId = this.dataset.courseId;
-            const sectorId = this.dataset.sectorId;
-            const courseName = this.dataset.courseName;
-            const courseDescription = this.dataset.courseDescription;
-            const courseDuration = this.dataset.courseDuration;
-            const morningIn = this.dataset.morningIn;
-            const morningOut = this.dataset.morningOut;
-            const afternoonIn = this.dataset.afternoonIn;
-            const afternoonOut = this.dataset.afternoonOut;
+        // Handle edit course
+        document.querySelectorAll('.edit-course').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const courseId = this.dataset.courseId;
+                const sectorId = this.dataset.sectorId;
+                const courseName = this.dataset.courseName;
+                const courseDescription = this.dataset.courseDescription;
+                const courseDuration = this.dataset.courseDuration;
+                const morningIn = this.dataset.morningIn;
+                const morningOut = this.dataset.morningOut;
+                const afternoonIn = this.dataset.afternoonIn;
+                const afternoonOut = this.dataset.afternoonOut;
 
-            // Populate the edit modal
-            document.getElementById('edit_sector_id').value = sectorId;
-            document.getElementById('edit_course_name').value = courseName;
-            document.getElementById('edit_course_description').value = courseDescription;
-            document.getElementById('edit_duration_days').value = courseDuration;
-            document.getElementById('edit_morning_in').value = morningIn;
-            document.getElementById('edit_morning_out').value = morningOut;
-            document.getElementById('edit_afternoon_in').value = afternoonIn;
-            document.getElementById('edit_afternoon_out').value = afternoonOut;
+                // Populate the edit modal
+                document.getElementById('edit_sector_id').value = sectorId;
+                document.getElementById('edit_course_name').value = courseName;
+                document.getElementById('edit_course_description').value = courseDescription;
+                document.getElementById('edit_duration_days').value = courseDuration;
+                document.getElementById('edit_morning_in').value = morningIn;
+                document.getElementById('edit_morning_out').value = morningOut;
+                document.getElementById('edit_afternoon_in').value = afternoonIn;
+                document.getElementById('edit_afternoon_out').value = afternoonOut;
 
-            // Update the form action URL
-            const editForm = document.getElementById('editCourseForm');
-            editForm.action = `{{ url('admin/course') }}/${courseId}`;
+                // Update the form action URL
+                const editForm = document.getElementById('editCourseForm');
+                editForm.action = `{{ url('admin/course') }}/${courseId}`;
+            });
         });
-    });
 
-    // Form submission handling
-    const editCourseForm = document.getElementById('editCourseForm');
-    if (editCourseForm) {
-        editCourseForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editCourseModal'));
-                    modal.hide();
+        // Form submission handling
+        const editCourseForm = document.getElementById('editCourseForm');
+        if (editCourseForm) {
+            editCourseForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Close modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editCourseModal'));
+                        modal.hide();
 
-                    // Show success message
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: data.message || 'Course updated successfully',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        // Redirect to the correct URL
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    });
-                } else {
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message || 'Course updated successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => {
+                            // Redirect to the correct URL
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            } else {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: data.message || 'Something went wrong'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: data.message || 'Something went wrong'
+                        text: 'Something went wrong!'
                     });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+                });
+            });
+        }
+        // Handle delete course
+        document.querySelectorAll('.delete-course').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const courseId = this.dataset.courseId;
+                const courseName = this.dataset.courseName;
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Something went wrong!'
+                    title: 'Are you sure?',
+                    text: `You are about to delete ${courseName}. This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait',
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Get CSRF token
+                        const token = document.querySelector('meta[name="csrf-token"]').content;
+
+                        // Create form data
+                        const formData = new FormData();
+                        formData.append('_token', token);
+                        formData.append('_method', 'DELETE');
+
+                        // Send delete request
+                        fetch(`/admin/course/${courseId}/batches/${courseId}`, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: data.message || 'Course deleted successfully',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                throw new Error(data.message || 'Failed to delete course');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: error.message || 'Something went wrong while deleting the course',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        });
+                    }
                 });
             });
         });
-    }
-    // Handle delete course
-    document.querySelectorAll('.delete-course').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const courseId = this.dataset.courseId;
-            const courseName = this.dataset.courseName;
+    });
+    </script>
+    @endpush
 
-            Swal.fire({
-                title: 'Are you sure?',
-                text: `You are about to delete ${courseName}. This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show loading state
+
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle delete course
+            document.querySelectorAll('.delete-course').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get course ID and name from data attributes
+                    const courseId = this.getAttribute('data-course-id');
+                    const courseName = this.getAttribute('data-course-name');
+        
+                    // Debug log to check if ID is being passed
+                    console.log('Course ID:', courseId);
+                    console.log('Course Name:', courseName);
+        
+                    if (!courseId) {
+                        console.error('Course ID is undefined');
+                        return;
+                    }
+        
                     Swal.fire({
-                        title: 'Deleting...',
-                        text: 'Please wait',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    // Get CSRF token
-                    const token = document.querySelector('meta[name="csrf-token"]').content;
-
-                    // Create form data
-                    const formData = new FormData();
-                    formData.append('_token', token);
-                    formData.append('_method', 'DELETE');
-
-                    // Send delete request
-                    fetch(`/admin/course/${courseId}/batches/${courseId}`, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
+                        title: 'Are you sure?',
+                        text: `You are about to delete ${courseName}. This action cannot be undone.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Show loading state
                             Swal.fire({
-                                icon: 'success',
-                                title: 'Deleted!',
-                                text: data.message || 'Course deleted successfully',
+                                title: 'Deleting...',
+                                text: 'Please wait',
+                                allowOutsideClick: false,
                                 showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                window.location.reload();
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
                             });
-                        } else {
-                            throw new Error(data.message || 'Failed to delete course');
+        
+                            // Get CSRF token
+                            const token = document.querySelector('meta[name="csrf-token"]').content;
+        
+                            // Create form data
+                            const formData = new FormData();
+                            formData.append('_token', token);
+                            formData.append('_method', 'DELETE');
+        
+                            // Send delete request with explicit course ID
+                            fetch(`/admin/course/${courseId}`, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Delete batch first to delete this course');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Deleted!',
+                                        text: data.message || 'Course deleted successfully',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    throw new Error(data.message || 'Failed to delete course');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: error.message || 'Something went wrong while deleting the course',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            });
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: error.message || 'Something went wrong while deleting the course',
-                            confirmButtonColor: '#3085d6'
-                        });
                     });
-                }
+                });
             });
         });
-    });
-});
-</script>
-@endpush
+    </script>
+    @endpush
 
-
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteButtons = document.querySelectorAll('.delete-sector');
-    
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const sectorId = this.getAttribute('data-sector-id');
-            const sectorName = this.getAttribute('data-sector-name');
-
-            Swal.fire({
-                title: 'Delete Sector',
-                text: `Are you sure you want to delete "${sectorName}"?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show loading state
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle delete sector
+            document.querySelectorAll('.delete-sector').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const sectorId = this.getAttribute('data-sector-id');
+                    const sectorName = this.getAttribute('data-sector-name');
+        
                     Swal.fire({
-                        title: 'Deleting...',
-                        text: 'Please wait',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    // Get CSRF token
-                    const token = document.querySelector('meta[name="csrf-token"]').content;
-
-                    // Send delete request
-                    fetch(`/admin/sectors/${sectorId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(json => {
-                                throw new Error(json.message || 'Something went wrong');
-                            });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
+                        title: 'Are you sure?',
+                        text: `You are about to delete sector "${sectorName}". This action cannot be undone.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Show loading state
                             Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: data.message || 'Sector deleted successfully',
+                                title: 'Deleting...',
+                                text: 'Please wait',
+                                allowOutsideClick: false,
                                 showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                window.location.reload();
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
                             });
-                        } else {
-                            throw new Error(data.message || 'Failed to delete sector');
+        
+                            // Get CSRF token
+                            const token = document.querySelector('meta[name="csrf-token"]').content;
+        
+                            // Create form data
+                            const formData = new FormData();
+                            formData.append('_token', token);
+                            formData.append('_method', 'DELETE');
+        
+                            // Send delete request - using the correct route from your web.php
+                            fetch(`/admin/sectors/${sectorId}`, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Deleted!',
+                                        text: data.message || 'Sector deleted successfully',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    throw new Error(data.message || 'Failed to delete sector');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: error.message || 'Something went wrong while deleting the sector',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            });
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: error.message || 'Something went wrong!'
-                        });
                     });
-                }
+                });
             });
         });
-    });
+        
+    </script>
+    @endpush
 
-    // For debugging
-    console.log('Delete buttons found:', document.querySelectorAll('.delete-sector').length);
-});
-</script>
-@endpush
 
-    
 </x-adminlayout>

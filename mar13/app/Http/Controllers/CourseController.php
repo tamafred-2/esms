@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
 use App\Models\BatchEnrollment;
 use App\Models\Course;
 use App\Models\CourseBatch;
@@ -23,13 +24,19 @@ class CourseController extends Controller
 {
     public function index()
     {
-        $courses = Course::with(['sector', 'school'])->paginate(10);
+        $courses = Course::with([
+            'sector', 
+            'school',
+            'courseBatches' // Changed from 'batches' to 'courseBatches'
+        ])->paginate(10);
+        
         $sectors = Sector::all();
         $icon = 'bi bi-book';
         $button = [
             'text' => 'Add New Course',
             'route' => route('admin.courses.create')
         ];
+        
         return view('admin.course.index', compact('courses', 'sectors', 'icon', 'button'));
     }
 
@@ -210,27 +217,36 @@ class CourseController extends Controller
         }
     }
     
-    public function destroy(Course $course, CourseBatch $batch)
+    public function destroy($id)
     {
         try {
-            if ($batch->enrollments()->count() > 0) {
+            $course = Course::findOrFail($id);
+            
+            DB::beginTransaction();
+            
+            // Check if course has any related data
+            if ($course->batches()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete batch with existing enrollments'
-                ]);
+                    'message' => 'Cannot delete course with existing batches'
+                ], 422);
             }
-
-            $batch->delete();
-
+            
+            $course->delete();
+            
+            DB::commit();
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Batch deleted successfully'
+                'message' => 'Course deleted successfully'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Course deletion error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete batch'
-            ]);
+                'message' => 'Error deleting course'
+            ], 500);
         }
     }
 
@@ -256,22 +272,26 @@ class CourseController extends Controller
         ];
         return view('admin.courses.batches.create', compact('course', 'sectors', 'icon', 'button'));
     }
-
-    public function storeBatch(Request $request, Course $course)
+    
+    public function storeBatch(Request $request, $courseId)
     {
         try {
+            // Validate request
             $validated = $request->validate([
                 'batch_name' => 'required|string|max:255',
                 'start_date' => 'required|date|after_or_equal:today',
-                'max_students' => 'required|integer|min:1',
+                'max_students' => 'required|integer|min:1'
             ]);
     
+            // Find the course
+            $course = Course::findOrFail($courseId);
+    
             // Calculate end date based on course duration
-            $endDate = Carbon::parse($validated['start_date'])
-                ->addDays($course->duration_days - 1);
+            $endDate = Carbon::parse($validated['start_date'])->addDays($course->duration_days);
     
             DB::beginTransaction();
     
+            // Create batch
             $batch = $course->batches()->create([
                 'batch_name' => $validated['batch_name'],
                 'start_date' => $validated['start_date'],
@@ -283,23 +303,24 @@ class CourseController extends Controller
     
             return response()->json([
                 'success' => true,
-                'message' => 'Batch created successfully'
+                'message' => 'Batch created successfully',
+                'batch' => $batch
             ]);
     
         } catch (ValidationException $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
+    
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Batch creation failed: ' . $e->getMessage());
+            Log::error('Batch creation error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create batch'
+                'message' => 'Error creating batch: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -319,7 +340,7 @@ class CourseController extends Controller
                 'status' => $enrollment->status
             ];
         });
-
+    
         // Get the school from the course relationship
         $school = $course->school;
         // Get sectors specific to this school
@@ -328,9 +349,9 @@ class CourseController extends Controller
         $icon = 'bi bi-collection';
         $button = [
             'text' => 'Back to Batches',
-            'route' => route('admin.course.batches.index', $course)
+            'route' => route('admin.course.batches.index', $course) 
         ];
-
+    
         return view('admin.courses.batches.show', compact(
             'course',
             'batch',
@@ -444,36 +465,43 @@ class CourseController extends Controller
         }
     }
 
-    public function destroyBatch(Course $course)
+    public function destroyBatch($courseId, $batchId)
     {
         try {
-            DB::beginTransaction();
-    
-            // Optional: Check if the course has any batches
-            if ($course->batches()->exists()) {
+            $batch = CourseBatch::findOrFail($batchId);
+            
+            // Check if batch belongs to the course
+            if ($batch->course_id != $courseId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete course with existing batches'
+                    'message' => 'Batch does not belong to this course'
+                ], 403);
+            }
+    
+            // Check for enrollments
+            if ($batch->enrollments()->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete batch with existing enrollments'
                 ], 422);
             }
     
-            // Delete the course
-            $course->delete();
-    
+            DB::beginTransaction();
+            
+            $batch->delete();
+            
             DB::commit();
-    
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Course deleted successfully'
+                'message' => 'Batch deleted successfully'
             ]);
-    
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Course deletion failed: ' . $e->getMessage());
-    
+            Log::error('Batch deletion error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete course: ' . $e->getMessage()
+                'message' => 'Error deleting batch'
             ], 500);
         }
     }
@@ -583,88 +611,81 @@ class CourseController extends Controller
 
         return response()->json($stats);
     }
-    public function enrollStudent(Request $request, CourseBatch $batch)
-    {
-        $validated = $request->validate([
-            // TVET Provider Profile
-            'region' => 'required|string',
-            'province' => 'required|string',
-            'congressional_district' => 'required|string',
-            'municipality' => 'required|string',
-            'provider_type' => 'required|string',
-            
-            // Program Profile
-            'registration_status' => 'required|string',
-            'delivery_mode' => 'required|string',
-            
-            // Learner Profile
-            'lastname' => 'required|string',
-            'firstname' => 'required|string',
-            'middlename' => 'nullable|string',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed', // Changed to standard validation rules
-            'contact_number' => 'required|string',
-            'street_address' => 'required|string',
-            'barangay' => 'required|string',
-            'municipality' => 'required|string',
-            'province' => 'required|string',
-            'gender' => 'required|in:Male,Female',
-            'birthdate' => 'required|date',
-            'civil_status' => 'required|string',
-            'nationality' => 'required|string',
-            'classification' => 'required|string',
-        ]);
 
+    public function enrollStudent(Request $request, Course $course, CourseBatch $batch)
+    {
         try {
+            $validated = $request->validate([
+                'lastname' => 'required|string|max:255',
+                'firstname' => 'required|string|max:255',
+                'middlename' => 'nullable|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'contact_number' => 'required|string|max:20',
+                'password' => 'required|min:8|confirmed',
+                'gender' => 'required|in:Male,Female',
+                'birthdate' => 'required|date',
+                'street_address' => 'required|string',
+                'barangay' => 'required|string',
+                'municipality' => 'required|string',
+                'province' => 'required|string',
+                'civil_status' => 'required|string',
+                'nationality' => 'required|string',
+                'classification' => 'required|string',
+            ]);
+
             DB::beginTransaction();
 
-            // Create user with student profile
+            // Create new user
             $user = User::create([
                 'lastname' => $validated['lastname'],
                 'firstname' => $validated['firstname'],
                 'middlename' => $validated['middlename'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'usertype' => 'Student',
                 'contact_number' => $validated['contact_number'],
+                'gender' => $validated['gender'],
+                'birthdate' => $validated['birthdate'],
                 'street_address' => $validated['street_address'],
                 'barangay' => $validated['barangay'],
                 'municipality' => $validated['municipality'],
                 'province' => $validated['province'],
-                'gender' => $validated['gender'],
-                'birthdate' => $validated['birthdate'],
                 'civil_status' => $validated['civil_status'],
                 'nationality' => $validated['nationality'],
-                'classification' => $validated['classification']
+                'classification' => $validated['classification'],
+                'usertype' => 'Student'
             ]);
 
-            // Create batch enrollment
+            // Create enrollment record
             $enrollment = BatchEnrollment::create([
-                'batch_id' => $batch->id,
                 'user_id' => $user->id,
-                'registration_status' => $validated['registration_status'],
-                'delivery_mode' => $validated['delivery_mode'],
-                'provider_type' => $validated['provider_type'],
-                'region' => $validated['region'],
-                'province' => $validated['province'],
-                'congressional_district' => $validated['congressional_district'],
-                'municipality' => $validated['municipality'],
-                'status' => 'Active'
+                'batch_id' => $batch->id,
+                'status' => 'enrolled',
+                'enrolled_at' => now(),
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Student enrolled successfully'
+                'message' => 'Student enrolled successfully',
+                'data' => [
+                    'user' => $user,
+                    'enrollment' => $enrollment
+                ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
             DB::rollBack();
-            Log::error('Enrollment Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to enroll student: ' . $e->getMessage()
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
     }

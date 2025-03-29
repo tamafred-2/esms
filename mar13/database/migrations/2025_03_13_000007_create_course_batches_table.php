@@ -17,8 +17,12 @@ return new class extends Migration
             $table->string('batch_name');
             $table->date('start_date');
             $table->date('end_date');
-            $table->integer('max_students')->default(30);
-            $table->enum('status', ['upcoming', 'ongoing', 'completed'])->default('upcoming');
+            $table->integer('max_students');
+            $table->time('morning_time_in')->nullable();
+            $table->time('morning_time_out')->nullable();
+            $table->time('afternoon_time_in')->nullable();
+            $table->time('afternoon_time_out')->nullable();
+            $table->string('status')->default('upcoming');
             $table->timestamps();
         });
     }

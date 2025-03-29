@@ -22,8 +22,8 @@
                         <div class="card h-100 border-0 shadow-sm batch-card">
                             <div class="card-body">
                                 <!-- Batch Header -->
-                                 <div class="d-flex justify-content-between align-items-start mb-3 batch-item" data-course-id="{{ $course->id }}">
-                                     <div>
+                                <div class="d-flex justify-content-between align-items-start mb-3 batch-item" data-course-id="{{ $course->id }}">
+                                    <div>
                                          <h5 class="card-title mb-1">{{ $batch->batch_name }}</h5>
                                          @php
                                              $now = \Carbon\Carbon::now();
@@ -45,31 +45,29 @@
                                              <i class="bi {{ $statusIcon }} me-1"></i>
                                              {{ ucfirst($status) }}
                                          </span>
-                                     </div>
-
-                                     <div class="dropdown">
-                                        <button class="btn btn-link text-dark p-0" 
+                                    </div>
+                                    <div class="dropdown batch-actions" onclick="event.stopPropagation();">
+                                        <button class="btn btn-link text-dark p-0 dropdown-toggle" 
                                                 type="button" 
                                                 data-bs-toggle="dropdown"
-                                                onclick="event.stopPropagation();">
+                                                aria-expanded="false">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <!-- Delete Batch button -->
                                             @if($batch->enrollments()->count() == 0)
                                                 <li>
-                                                <button class="dropdown-item text-danger delete-batch" 
-                                                    onclick="event.stopPropagation();"
-                                                    data-batch-id="{{ $batch->id }}"
-                                                    data-batch-name="{{ $batch->batch_name }}"
-                                                    data-course-id="{{ $course->id }}">
-                                                    <i class="bi bi-trash me-2"></i>Delete
-                                                </button>
+                                                    <button class="dropdown-item text-danger delete-batch" 
+                                                            type="button"
+                                                            data-batch-id="{{ $batch->id }}"
+                                                            data-batch-name="{{ $batch->batch_name }}"
+                                                            data-course-id="{{ $course->id }}">
+                                                        <i class="bi bi-trash me-2"></i>Delete Batch
+                                                    </button>
                                                 </li>
                                             @endif
                                         </ul>
                                     </div>
-                                 </div>
+                                </div>
 
                                 <!-- Dates Section -->
                                 <div class="mb-3">
@@ -178,6 +176,7 @@
             </div>
         @endif
     </div>
+    
     <!-- Add Batch Modal -->
     <div class="modal fade" id="addBatchModal" tabindex="-1">
         <div class="modal-dialog">
@@ -186,39 +185,33 @@
                     <h5 class="modal-title">Add New Batch</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="addBatchForm" method="POST" action="{{ route('admin.course.batches.store', $course) }}">
+                <form id="addBatchForm" action="{{ route('admin.course.batches.store', $course->id) }}" method="POST">
                     @csrf
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="batch_name" class="form-label">Batch Name</label>
                             <input type="text" 
-                                class="form-control" 
-                                id="batch_name" 
-                                name="batch_name" 
-                                required>
+                                   class="form-control" 
+                                   id="batch_name" 
+                                   name="batch_name" 
+                                   required>
                         </div>
                         <div class="mb-3">
                             <label for="start_date" class="form-label">Start Date</label>
                             <input type="date" 
-                                class="form-control" 
-                                id="start_date" 
-                                name="start_date" 
-                                min="{{ date('Y-m-d') }}"
-                                required>
-                            <div class="form-text text-muted">
-                                Course Duration: {{ $course->duration_days }} days
-                                <br>
-                                End Date will be automatically calculated based on the course duration.
-                            </div>
+                                   class="form-control" 
+                                   id="start_date" 
+                                   name="start_date" 
+                                   required>
                         </div>
                         <div class="mb-3">
                             <label for="max_students" class="form-label">Maximum Students</label>
                             <input type="number" 
-                                class="form-control" 
-                                id="max_students" 
-                                name="max_students" 
-                                min="1"
-                                required>
+                                   class="form-control" 
+                                   id="max_students" 
+                                   name="max_students" 
+                                   min="1" 
+                                   required>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -229,19 +222,133 @@
             </div>
         </div>
     </div>
+    
+    <style>
+    .batch-card {
+        position: relative;
+    }
+
+    .batch-actions {
+        position: relative;
+        z-index: 2;
+    }
+
+    .batch-card .dropdown-menu {
+        z-index: 1050;
+    }
+
+    .batch-card .dropdown-toggle::after {
+        display: none;
+    }
+
+    .batch-card .stretched-link {
+        z-index: 1;
+    }
+
+    .dropdown-item {
+        cursor: pointer;
+    }
+
+    .dropdown-menu {
+        min-width: 120px;
+    }
+    </style>
+
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Prevent batch link click when clicking dropdown
-        document.querySelectorAll('.dropdown').forEach(dropdown => {
-            dropdown.addEventListener('click', function(e) {
+        // Initialize dropdowns
+        const dropdownTriggerList = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+        const dropdownList = [...dropdownTriggerList].map(dropdownTriggerEl => {
+            return new bootstrap.Dropdown(dropdownTriggerEl);
+        });
+        // Handle delete batch
+        document.querySelectorAll('.delete-batch').forEach(button => {
+            button.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+        
+                const batchId = this.getAttribute('data-batch-id');
+                const batchName = this.getAttribute('data-batch-name');
+                const courseId = this.getAttribute('data-course-id');
+        
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `You are about to delete batch "${batchName}". This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait',
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+        
+                        // Get CSRF token
+                        const token = document.querySelector('meta[name="csrf-token"]').content;
+        
+                        // Send delete request
+                        fetch(`/admin/course/${courseId}/batches/${batchId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': token,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: data.message || 'Batch deleted successfully',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                throw new Error(data.message || 'Failed to delete batch');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: error.message || 'Something went wrong while deleting the batch',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        });
+                    }
+                });
             });
         });
-
-        // Handle add batch form submission
-        document.getElementById('addBatchForm').addEventListener('submit', function(e) {
+    });
+    </script>
+    @endpush
+    
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('addBatchForm');
+        
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             // Show loading state
@@ -254,45 +361,34 @@
                     Swal.showLoading();
                 }
             });
-        
+    
+            // Get form data
+            const formData = new FormData(this);
+    
             // Get CSRF token
             const token = document.querySelector('meta[name="csrf-token"]').content;
-        
-            // Create a new FormData and append all form fields
-            const formData = new FormData(this);
-        
+    
+            // Send request
             fetch(this.action, {
                 method: 'POST',
-                body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token,
                     'Accept': 'application/json'
-                }
+                },
+                body: formData
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            throw new Error(text);
-                        }
-                    });
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Close modal first
+                    // Close modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addBatchModal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-        
+                    modal.hide();
+    
+                    // Show success message
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: data.message,
+                        text: data.message || 'Batch created successfully',
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
@@ -304,6 +400,8 @@
             })
             .catch(error => {
                 console.error('Error:', error);
+                
+                // Show error message
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',
@@ -312,132 +410,8 @@
                 });
             });
         });
-        
-
-        // Handle edit batch form submission
-        document.querySelectorAll('[id^="editBatchForm"]').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const batchId = this.id.replace('editBatchForm', '');
-                
-                // Show loading state
-                Swal.fire({
-                    title: 'Updating...',
-                    text: 'Please wait',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Get CSRF token
-                const token = document.querySelector('meta[name="csrf-token"]').content;
-
-                // Create a new FormData and append all form fields
-                const formData = new FormData(this);
-                formData.append('_token', token);
-                formData.append('_method', 'PUT');
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            try {
-                                return JSON.parse(text);
-                            } catch (e) {
-                                throw new Error(text);
-                            }
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Close modal first
-                        const modal = bootstrap.Modal.getInstance(document.getElementById(`editBatchModal${batchId}`));
-                        if (modal) {
-                            modal.hide();
-                        }
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: data.message,
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        throw new Error(data.message || 'Failed to update batch');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: error.message || 'Something went wrong while updating the batch',
-                        confirmButtonColor: '#3085d6'
-                    });
-                });
-            });
-        });
-
-        // Handle delete batch
-        document.querySelectorAll('.delete-batch').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const batchId = this.dataset.batchId;
-                const batchName = this.dataset.batchName;
-                const courseId = this.dataset.courseId;
-        
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `You are about to delete batch "${batchName}". This action cannot be undone.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `/admin/course/${courseId}/batches/${batchId}`;
-                        
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
-                        
-                        const methodInput = document.createElement('input');
-                        methodInput.type = 'hidden';
-                        methodInput.name = '_method';
-                        methodInput.value = 'DELETE';
-                        
-                        form.appendChild(csrfInput);
-                        form.appendChild(methodInput);
-                        document.body.appendChild(form);
-                        
-                        form.submit();
-                    }
-                });
-            });
-        });
-        
     });
     </script>
     @endpush
+    
 </x-adminlayout>

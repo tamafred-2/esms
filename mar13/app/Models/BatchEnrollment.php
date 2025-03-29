@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class BatchEnrollment extends Model
 {
+    protected $table = 'batch_enrollments';
+
     protected $fillable = [
         'batch_id',
         'user_id',
@@ -24,19 +26,20 @@ class BatchEnrollment extends Model
         'updated_at'
     ];
 
+    // Relationships
     public function courseBatch()
     {
         return $this->belongsTo(CourseBatch::class, 'batch_id');
     }
-
-    public function batchEnrollments()
-    {
-        return $this->hasMany(BatchEnrollment::class);
-    }
-
+    
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // Get course through courseBatch
+    public function getCourseAttribute()
+    {
+        return $this->courseBatch?->course;
+    }
 }

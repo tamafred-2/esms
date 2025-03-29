@@ -657,28 +657,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle card clicks
-        document.querySelectorAll('.cards').forEach(card => {
-            card.addEventListener('click', function(e) {
-                // Don't trigger if clicking dropdown or its children
-                if (!e.target.closest('.dropdown')) {
-                    const link = this.querySelector('.card-link-overlay');
-                    if (link) {
-                        window.location.href = link.href;
-                    }
-                }
-            });
-        });
-    
-        // Prevent dropdown clicks from triggering card click
-        document.querySelectorAll('.dropdown').forEach(dropdown => {
-            dropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        });
-    });
-
     document.getElementById('addSchoolForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
