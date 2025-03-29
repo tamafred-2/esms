@@ -2,54 +2,69 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
+            
+            // Foreign Keys
             $table->foreignId('student_id')
                 ->constrained('users')
-                ->onDelete('cascade');
+                ->onDelete('cascade')
+                ->comment('References users table, student only');
             
             $table->foreignId('batch_id')
                 ->constrained('course_batches')
-                ->onDelete('cascade');
+                ->onDelete('cascade')
+                ->comment('References course_batches table');
             
-            $table->date('attendance_date');
+            // Date and Time
+            $table->date('attendance_date')->comment('Date of attendance');
             
             // Morning attendance
-            $table->time('morning_time_in')->nullable();
-            $table->time('morning_time_out')->nullable();
-            $table->unsignedInteger('morning_minutes_late')->default(0);
+            $table->time('morning_time_in')->nullable()->comment('Morning time in');
+            $table->time('morning_time_out')->nullable()->comment('Morning time out');
+            $table->unsignedSmallInteger('morning_minutes_late')
+                ->default(0)
+                ->comment('Minutes late for morning session');
             
             // Afternoon attendance
-            $table->time('afternoon_time_in')->nullable();
-            $table->time('afternoon_time_out')->nullable();
-            $table->unsignedInteger('afternoon_minutes_late')->default(0);
+            $table->time('afternoon_time_in')->nullable()->comment('Afternoon time in');
+            $table->time('afternoon_time_out')->nullable()->comment('Afternoon time out');
+            $table->unsignedSmallInteger('afternoon_minutes_late')
+                ->default(0)
+                ->comment('Minutes late for afternoon session');
             
-            // Add this line
-            $table->string('status')->nullable(); // Add the status column
+            // Status and Remarks
+            $table->enum('status', ['present', 'absent', 'late', 'excused'])
+                ->default('absent')
+                ->comment('Attendance status');
             
-            $table->text('remarks')->nullable();
+            $table->text('remarks')->nullable()->comment('Additional notes or remarks');
+            
             $table->timestamps();
             
-            // Indexes
-            $table->index('attendance_date');
-            $table->index(['batch_id', 'attendance_date']);
+            // Indexes for better query performance
+            $table->index('attendance_date', 'idx_attendance_date');
+            $table->index(['batch_id', 'attendance_date'], 'idx_batch_date');
+            $table->index('status', 'idx_status');
             
-            $table->unique(['student_id', 'batch_id', 'attendance_date'], 'unique_attendance');
+            // Unique constraint to prevent duplicate attendance records
+            $table->unique(
+                ['student_id', 'batch_id', 'attendance_date'], 
+                'unique_attendance'
+            );
         });
+
+        // Add table comment
+        DB::statement('ALTER TABLE `attendances` COMMENT = "Stores student attendance records for course batches"');
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('attendances');

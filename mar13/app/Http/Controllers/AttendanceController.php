@@ -16,7 +16,6 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
-    
     public function store(Request $request, $batchId)
     {
         try {
@@ -32,19 +31,22 @@ class AttendanceController extends Controller
     
                 // Calculate morning minutes late
                 if (!empty($attendance['morning_time_in']) && isset($courseSchedule->morning_schedule['in'])) {
-                    $timeIn = Carbon::createFromFormat('H:i', $attendance['morning_time_in']);
-                    $scheduleIn = Carbon::createFromFormat('H:i', $courseSchedule->morning_schedule['in']);
+                    $timeIn = Carbon::parse($attendance['morning_time_in']);
+                    $scheduleIn = Carbon::parse($request->attendance_date . ' ' . $courseSchedule->morning_schedule['in']);
+                    
+                    // Only calculate minutes late if time is actually late
                     if ($timeIn->gt($scheduleIn)) {
-                        $morningMinutesLate = $timeIn->diffInMinutes($scheduleIn);
+                        $morningMinutesLate = max(0, $timeIn->diffInMinutes($scheduleIn));
                     }
                 }
     
                 // Calculate afternoon minutes late
                 if (!empty($attendance['afternoon_time_in']) && isset($courseSchedule->afternoon_schedule['in'])) {
-                    $timeIn = Carbon::createFromFormat('H:i', $attendance['afternoon_time_in']);
-                    $scheduleIn = Carbon::createFromFormat('H:i', $courseSchedule->afternoon_schedule['in']);
+                    $timeIn = Carbon::parse($attendance['afternoon_time_in']);
+                    $scheduleIn = Carbon::parse($request->attendance_date . ' ' . $courseSchedule->afternoon_schedule['in']);
+                    
                     if ($timeIn->gt($scheduleIn)) {
-                        $afternoonMinutesLate = $timeIn->diffInMinutes($scheduleIn);
+                        $afternoonMinutesLate = max(0, $timeIn->diffInMinutes($scheduleIn));
                     }
                 }
     

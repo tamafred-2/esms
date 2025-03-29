@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +26,17 @@ class BatchEnrollment extends Model
     ];
 
     // Relationships
+    public function course()
+    {
+        return $this->hasOneThrough(
+            Course::class,
+            CourseBatch::class,
+            'id',
+            'id',
+            'batch_id',
+            'course_id'
+        );
+    }
     public function courseBatch()
     {
         return $this->belongsTo(CourseBatch::class, 'batch_id');

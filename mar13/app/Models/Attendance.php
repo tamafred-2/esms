@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -8,19 +7,39 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Attendance extends Model
 {
     protected $fillable = [
-        'batch_id',
         'student_id',
+        'batch_id',
         'attendance_date',
         'morning_time_in',
         'morning_time_out',
+        'morning_minutes_late',
         'afternoon_time_in',
         'afternoon_time_out',
-        'status'
+        'afternoon_minutes_late',
+        'status',
+        'remarks'
     ];
 
-
     protected $casts = [
-        'attendance_date' => 'date'
+        'attendance_date' => 'date',
+        'morning_time_in' => 'datetime',
+        'morning_time_out' => 'datetime',
+        'afternoon_time_in' => 'datetime',
+        'afternoon_time_out' => 'datetime',
+        'morning_minutes_late' => 'integer',
+        'afternoon_minutes_late' => 'integer'
+    ];
+
+    const STATUS_PRESENT = 'present';
+    const STATUS_ABSENT = 'absent';
+    const STATUS_LATE = 'late';
+    const STATUS_EXCUSED = 'excused';
+
+    public static $statuses = [
+        self::STATUS_PRESENT => 'Present',
+        self::STATUS_ABSENT => 'Absent',
+        self::STATUS_LATE => 'Late',
+        self::STATUS_EXCUSED => 'Excused'
     ];
 
     /**
