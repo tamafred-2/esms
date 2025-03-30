@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,10 @@ class User extends Authenticatable
         'birthdate',
         'civil_status',
         'nationality',
-        'classification'
+        'classification',
+        'district',      
+        'highest_grade', 
+        'course_program'
     ];
 
     protected $hidden = [
@@ -41,6 +45,11 @@ class User extends Authenticatable
     public function batchEnrollments()
     {
         return $this->hasMany(BatchEnrollment::class);
+    }
+        // Add this accessor method
+    public function getAgeAttribute()
+    {
+        return $this->birthdate ? Carbon::parse($this->birthdate)->age : null;
     }
 
     protected $casts = [

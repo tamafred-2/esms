@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Batch;
 use App\Models\BatchEnrollment;
 use App\Models\Course;
+use App\Models\CourseBatch;
 use App\Models\School;
 use App\Models\User;
 use Carbon\Carbon;
@@ -16,80 +17,87 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
-    public function store(Request $request, $batchId)
+    public function store(Request $request, Course $course, CourseBatch $batch)
     {
         try {
-            $updated = false;
-            foreach ($request->students as $studentId => $attendance) {
-                // Get the course schedule for this batch
-                $batch = BatchEnrollment::with('course')->find($batchId);
-                $courseSchedule = $batch->course;
+            $validated = $request->validate([
+                'attendance_date' => 'required|date',
+                'students' => 'required|array',
+                'students.*.morning_time_in' => 'nullable|string',
+                'students.*.morning_time_out' => 'nullable|string',
+                'students.*.afternoon_time_in' => 'nullable|string',
+                'students.*.afternoon_time_out' => 'nullable|string',
+                'students.*.status' => 'required|in:present,late,absent,excused'
+            ]);
     
-                // Calculate minutes late
-                $morningMinutesLate = 0;
-                $afternoonMinutesLate = 0;
+            DB::beginTransaction();
     
-                // Calculate morning minutes late
-                if (!empty($attendance['morning_time_in']) && isset($courseSchedule->morning_schedule['in'])) {
-                    $timeIn = Carbon::parse($attendance['morning_time_in']);
-                    $scheduleIn = Carbon::parse($request->attendance_date . ' ' . $courseSchedule->morning_schedule['in']);
-                    
-                    // Only calculate minutes late if time is actually late
-                    if ($timeIn->gt($scheduleIn)) {
-                        $morningMinutesLate = max(0, $timeIn->diffInMinutes($scheduleIn));
+            foreach ($validated['students'] as $studentId => $attendance) {
+                $morningLateMinutes = 0;
+                $afternoonLateMinutes = 0;
+    
+                if ($attendance['status'] === 'late') {
+                    if ($attendance['morning_time_in']) {
+                        $morningLateMinutes = $this->calculateLateness(
+                            $attendance['morning_time_in'],
+                            $course->morning_schedule['in']
+                        );
                     }
-                }
-    
-                // Calculate afternoon minutes late
-                if (!empty($attendance['afternoon_time_in']) && isset($courseSchedule->afternoon_schedule['in'])) {
-                    $timeIn = Carbon::parse($attendance['afternoon_time_in']);
-                    $scheduleIn = Carbon::parse($request->attendance_date . ' ' . $courseSchedule->afternoon_schedule['in']);
-                    
-                    if ($timeIn->gt($scheduleIn)) {
-                        $afternoonMinutesLate = max(0, $timeIn->diffInMinutes($scheduleIn));
+                    if ($attendance['afternoon_time_in']) {
+                        $afternoonLateMinutes = $this->calculateLateness(
+                            $attendance['afternoon_time_in'],
+                            $course->afternoon_schedule['in']
+                        );
                     }
-                }
-    
-                $exists = Attendance::where([
-                    'batch_id' => $batchId,
-                    'student_id' => $studentId,
-                    'attendance_date' => $request->attendance_date,
-                ])->exists();
-    
-                if ($exists) {
-                    $updated = true;
                 }
     
                 Attendance::updateOrCreate(
                     [
-                        'batch_id' => $batchId,
-                        'student_id' => $studentId,
-                        'attendance_date' => $request->attendance_date,
+                        'batch_id' => $batch->id,
+                        'student_id' => $studentId, // Changed from user_id to student_id
+                        'attendance_date' => $validated['attendance_date']
                     ],
                     [
                         'morning_time_in' => $attendance['morning_time_in'],
                         'morning_time_out' => $attendance['morning_time_out'],
                         'afternoon_time_in' => $attendance['afternoon_time_in'],
                         'afternoon_time_out' => $attendance['afternoon_time_out'],
-                        'morning_minutes_late' => $morningMinutesLate,
-                        'afternoon_minutes_late' => $afternoonMinutesLate,
-                        'status' => $attendance['status']
+                        'status' => $attendance['status'],
+                        'morning_late_minutes' => $morningLateMinutes,
+                        'afternoon_late_minutes' => $afternoonLateMinutes,
                     ]
                 );
             }
     
+            DB::commit();
+    
             return response()->json([
                 'success' => true,
-                'message' => $updated ? 'Attendance updated successfully' : 'Attendance saved successfully'
+                'message' => 'Attendance has been recorded successfully',
+                'data' => [
+                    'date' => $validated['attendance_date'],
+                    'total_students' => count($validated['students'])
+                ]
             ]);
+    
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save attendance: ' . $e->getMessage()
-            ]);
+                'message' => 'Error recording attendance: ' . $e->getMessage()
+            ], 500);
         }
     }
     
+    
+    private function calculateLateness($actualTime, $scheduledTime)
+    {
+        $actual = \Carbon\Carbon::createFromFormat('H:i', $actualTime);
+        $scheduled = \Carbon\Carbon::createFromFormat('H:i', $scheduledTime);
+        
+        return max(0, $actual->diffInMinutes($scheduled));
+    }
+
     public function show(BatchEnrollment $batch, $date = null)
     {
         $date = $date ?? now()->toDateString();

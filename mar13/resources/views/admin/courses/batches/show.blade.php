@@ -5,6 +5,14 @@
         throw new Exception('Course or Batch not found');
     }
 @endphp
+
+@php
+    $schedules = [
+        'morning' => $course->morning_schedule,
+        'afternoon' => $course->afternoon_schedule
+    ];
+@endphp
+
     <div class="container-fluid px-4">
         <!-- Header Section -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -150,12 +158,104 @@
                                                         <button type="button" class="btn btn-sm btn-outline-primary" title="Edit">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-info" title="View" data-bs-toggle="modal" data-bs-target="#viewStudentModal{{ $enrollment->id }}">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
                                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Delete">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
                                                 </td>
                                             </tr>
+                                            <!-- View Student Modal -->
+                                            <div class="modal fade" id="viewStudentModal{{ $enrollment->id }}" tabindex="-1" aria-labelledby="viewStudentModalLabel{{ $enrollment->id }}" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="viewStudentModalLabel{{ $enrollment->id }}">Student Details</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <!-- Learner Profile -->
+                                                            <div class="row">
+                                                                <div class="col-12">
+                                                                    <h6 class="fw-bold text-primary mb-3">Learner Profile</h6>
+                                                                    
+                                                                    <!-- Personal Information -->
+                                                                    <div class="row mb-4">
+                                                                        <div class="col-md-6">
+                                                                            <p><strong>Full Name:</strong><br>
+                                                                                {{ $enrollment->user->lastname }}, {{ $enrollment->user->firstname }} 
+                                                                                {{ $enrollment->user->middlename ? $enrollment->user->middlename : 'N/A' }}
+                                                                            </p>
+                                                                            <p><strong>Email:</strong><br> {{ $enrollment->user->email }}</p>
+                                                                            <p><strong>Contact Number:</strong><br> {{ $enrollment->user->contact_number ?? 'N/A' }}</p>
+                                                                            <p><strong>Gender:</strong><br> {{ $enrollment->user->gender ?? 'N/A' }}</p>
+                                                                            <p><strong>Birthdate:</strong><br> {{ isset($enrollment->user->birthdate) ? date('M d, Y', strtotime($enrollment->user->birthdate)) : 'N/A' }}</p>
+                                                                            <p><strong>Civil Status:</strong><br> {{ $enrollment->user->civil_status ?? 'N/A' }}</p>
+                                                                            <p><strong>Classification:</strong><br> {{ $enrollment->user->classification ?? 'N/A' }}</p>
+                                                                            <p><strong>Nationality:</strong><br> {{ $enrollment->user->nationality ?? 'N/A' }}</p>
+                                                                        </div>
+                                            
+                                                                        <!-- Complete Address -->
+                                                                        <div class="col-md-6">
+                                                                            <h6 class="text-muted mb-3">Complete Address</h6>
+                                                                            <p><strong>Street Address:</strong><br> {{ $enrollment->user->street_address ?? 'N/A' }}</p>
+                                                                            <p><strong>Barangay:</strong><br> {{ $enrollment->user->barangay ?? 'N/A' }}</p>
+                                                                            <p><strong>Municipality/City:</strong><br> {{ $enrollment->user->municipality ?? 'N/A' }}</p>
+                                                                            <p><strong>District:</strong><br> {{ $enrollment->user->district ?? 'N/A' }}</p>
+                                                                            <p><strong>Province:</strong><br> {{ $enrollment->user->province ?? 'N/A' }}</p>
+                                                                        </div>
+                                                                    </div>
+                                            
+                                                                    <!-- Educational Background -->
+                                                                    <div class="row mb-4">
+                                                                        <div class="col-12">
+                                                                            <h6 class="text-muted mb-3">Educational Background</h6>
+                                                                            <p><strong>Highest Grade Completed:</strong><br> {{ $enrollment->user->highest_grade ?? 'N/A' }}</p>
+                                                                            <p><strong>Course/Program:</strong><br> {{ $enrollment->user->course_program ?? 'N/A' }}</p>
+                                                                        </div>
+                                                                    </div>
+                                            
+                                                                    <!-- TVET Provider Profile -->
+                                                                    <div class="row mb-4">
+                                                                        <div class="col-12">
+                                                                            <h6 class="fw-bold text-primary mb-3">TVET Provider Profile</h6>
+                                                                            <div class="row">
+                                                                                <div class="col-md-6">
+                                                                                    <p><strong>Region:</strong><br> {{ $enrollment->region }}</p>
+                                                                                    <p><strong>Province:</strong><br> {{ $enrollment->province }}</p>
+                                                                                    <p><strong>Congressional District:</strong><br> {{ $enrollment->congressional_district }}</p>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <p><strong>Municipality:</strong><br> {{ $enrollment->municipality }}</p>
+                                                                                    <p><strong>Type of Provider:</strong><br> {{ $enrollment->provider_type }}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                            
+                                                                    <!-- Program Profile -->
+                                                                    <div class="row">
+                                                                        <div class="col-12">
+                                                                            <h6 class="fw-bold text-primary mb-3">Program Profile</h6>
+                                                                            <div class="row">
+                                                                                <div class="col-md-6">
+                                                                                    <p><strong>TVET Program Registration Status:</strong><br> {{ $enrollment->registration_status }}</p>
+                                                                                    <p><strong>Delivery Mode:</strong><br> {{ $enrollment->delivery_mode }}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endforeach
                                     </tbody>
                                 </table>
@@ -174,149 +274,7 @@
             </div>
         </div>
     </div>
-    
-    <!-- Attendance Modal -->
-    <div class="modal fade" id="attendanceModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Time Attendance</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('admin.course.batches.attendance.store', ['course' => $course->id, 'batch' => $batch->id]) }}" method="POST" id="attendanceForm">
-                    @csrf
-                    <input type="hidden" name="batch_id" value="{{ $batch->id }}">
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Date</label>
-                                    <input type="date" class="form-control @error('attendance_date') is-invalid @enderror" 
-                                        name="attendance_date" 
-                                        value="{{ old('attendance_date', date('Y-m-d')) }}" 
-                                        min="{{ $batch->start_date }}"
-                                        max="{{ $batch->end_date }}"
-                                        required>
-                                    @error('attendance_date')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <small class="text-muted">
-                                        Training Period: {{ date('M d, Y', strtotime($batch->start_date)) }} - 
-                                        {{ date('M d, Y', strtotime($batch->end_date)) }}
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Course Schedule</label>
-                                    <div class="text-muted small">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="fw-semibold">Morning:</span>
-                                            @if(is_array($batch->course->morning_schedule) && 
-                                                !empty($batch->course->morning_schedule['in']) && 
-                                                !empty($batch->course->morning_schedule['out']))
-                                                <span class="badge bg-light text-dark">
-                                                    {{ date('h:i A', strtotime($batch->course->morning_schedule['in'])) }} - 
-                                                    {{ date('h:i A', strtotime($batch->course->morning_schedule['out'])) }}
-                                                </span>
-                                            @else
-                                                <span class="badge bg-secondary">Not set</span>
-                                            @endif
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="fw-semibold">Afternoon:</span>
-                                            @if(is_array($batch->course->afternoon_schedule) && 
-                                                !empty($batch->course->afternoon_schedule['in']) && 
-                                                !empty($batch->course->afternoon_schedule['out']))
-                                                <span class="badge bg-light text-dark">
-                                                    {{ date('h:i A', strtotime($batch->course->afternoon_schedule['in'])) }} - 
-                                                    {{ date('h:i A', strtotime($batch->course->afternoon_schedule['out'])) }}
-                                                </span>
-                                            @else
-                                                <span class="badge bg-secondary">Not set</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Student Name</th>
-                                        <th colspan="2" class="text-center">Morning</th>
-                                        <th colspan="2" class="text-center">Afternoon</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    <tr>
-                                        <th></th>
-                                        <th>Time In</th>
-                                        <th>Time Out</th>
-                                        <th>Time In</th>
-                                        <th>Time Out</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($batch->enrollments as $enrollment)
-                                        <tr>
-                                            <td>{{ $enrollment->user->name }}</td>
-                                            
-                                           <!-- Time Input Fields -->
-                                            <td>
-                                                <input type="time" 
-                                                    class="form-control form-control-sm" 
-                                                    name="students[{{ $enrollment->id }}][morning_time_in]" 
-                                                    value="{{ $attendance->morning_time_in ?? '' }}">
-                                            </td>
-
-                                            <td>
-                                                <input type="time" 
-                                                    class="form-control form-control-sm" 
-                                                    name="students[{{ $enrollment->id }}][morning_time_out]" 
-                                                    value="{{ $attendance->morning_time_out ?? '' }}">
-                                            </td>
-
-                                            <td>
-                                                <input type="time" 
-                                                    class="form-control form-control-sm" 
-                                                    name="students[{{ $enrollment->id }}][afternoon_time_in]" 
-                                                    value="{{ $attendance->afternoon_time_in ?? '' }}">
-                                            </td>
-
-                                            <td>
-                                                <input type="time" 
-                                                    class="form-control form-control-sm" 
-                                                    name="students[{{ $enrollment->id }}][afternoon_time_out]" 
-                                                    value="{{ $attendance->afternoon_time_out ?? '' }}">
-                                            </td>
-                                            
-                                            <!-- Status Dropdown -->
-                                            <td>
-                                                <select class="form-select form-select-sm" 
-                                                        name="students[{{ $enrollment->id }}][status]">
-                                                    <option value="present">Present</option>
-                                                    <option value="absent">Absent</option>
-                                                    <option value="late">Late</option>
-                                                    <option value="excused">Excused</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save Attendance</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     <!-- Add Student Modal -->
     <div class="modal fade" id="enrollStudentModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
@@ -517,6 +475,136 @@
         </div>
     </div>
 
+    <!-- Attendance Modal -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attendanceModalLabel">Attendance Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="attendanceForm" action="{{ route('admin.course.batches.attendance.store', ['course' => $course->id, 'batch' => $batch->id]) }}" method="POST">
+                        @csrf
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Date</label>
+                                <input type="date" name="attendance_date" class="form-control" required 
+                                    min="{{ $batch->start_date }}" max="{{ $batch->end_date }}">
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th colspan="2" class="text-center border-end">Morning ({{ $schedules['morning']['in'] }} - {{ $schedules['morning']['out'] }})</th>
+                                        <th colspan="2" class="text-center">Afternoon ({{ $schedules['afternoon']['in'] }} - {{ $schedules['afternoon']['out'] }})</th>
+                                        <th>Status</th>
+                                        <th>Late Minutes</th>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th class="text-center">Time In</th>
+                                        <th class="text-center border-end">Time Out</th>
+                                        <th class="text-center">Time In</th>
+                                        <th class="text-center">Time Out</th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($batch->enrollments as $enrollment)
+                                    <tr>
+                                        <td>{{ $enrollment->user->lastname }}, {{ $enrollment->user->firstname }}</td>
+                                        <td>
+                                            <input type="time" 
+                                                class="form-control form-control-sm time-input morning-time-in" 
+                                                name="students[{{ $enrollment->user_id }}][morning_time_in]"
+                                                data-student-id="{{ $enrollment->user_id }}"
+                                                data-session="morning">
+                                        </td>
+                                        <td class="border-end">
+                                            <input type="time" 
+                                                class="form-control form-control-sm time-input morning-time-out" 
+                                                name="students[{{ $enrollment->user_id }}][morning_time_out]"
+                                                data-student-id="{{ $enrollment->user_id }}"
+                                                data-session="morning">
+                                        </td>
+                                        <td>
+                                            <input type="time" 
+                                                class="form-control form-control-sm time-input afternoon-time-in" 
+                                                name="students[{{ $enrollment->user_id }}][afternoon_time_in]"
+                                                data-student-id="{{ $enrollment->user_id }}"
+                                                data-session="afternoon">
+                                        </td>
+                                        <td>
+                                            <input type="time" 
+                                                class="form-control form-control-sm time-input afternoon-time-out" 
+                                                name="students[{{ $enrollment->user_id }}][afternoon_time_out]"
+                                                data-student-id="{{ $enrollment->user_id }}"
+                                                data-session="afternoon">
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" 
+                                                    name="students[{{ $enrollment->user_id }}][status]">
+                                                <option value="present">Present</option>
+                                                <option value="late">Late</option>
+                                                <option value="absent">Absent</option>
+                                                <option value="excused">Excused</option>
+                                            </select>
+                                        </td>
+                                        <td class="late-minutes-cell"></td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" form="attendanceForm" class="btn btn-primary">Save Attendance</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('styles')
+    <style>
+        .section-header {
+            background: linear-gradient(to right, #0d6efd, #0dcaf0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .info-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-card .card-header {
+            background: white;
+            border-bottom: 2px solid #e9ecef;
+            padding: 15px 20px;
+        }
+        .info-card .card-body {
+            padding: 20px;
+        }
+        .info-card p {
+            margin-bottom: 0.8rem;
+        }
+        .info-card strong {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+    @endpush
 
     @push('styles')
     <style>
@@ -779,65 +867,6 @@
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const timeInputs = document.querySelectorAll('.time-input');
-        
-        timeInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                const studentId = this.dataset.studentId;
-                const session = this.dataset.session;
-                const row = this.closest('tr');
-                const statusSelect = row.querySelector('select');
-                
-                // Get the time inputs for this student and session
-                const timeIn = row.querySelector(`.${session}-time-in`).value;
-                const timeOut = row.querySelector(`.${session}-time-out`).value;
-                
-                if (timeIn && timeOut) {
-                    // Check if time is within allowed range
-                    const min = this.min;
-                    const max = this.max;
-                    
-                    if (timeIn < min || timeIn > max || timeOut < min || timeOut > max) {
-                        alert('Time must be within scheduled hours');
-                        this.value = '';
-                        return;
-                    }
-                    
-                    // Set status based on time
-                    if (timeIn > min) {
-                        statusSelect.value = 'late';
-                    } else {
-                        statusSelect.value = 'present';
-                    }
-                }
-            });
-        });
-        
-        // Handle status changes
-        document.querySelectorAll('select[name$="[status]"]').forEach(select => {
-            select.addEventListener('change', function() {
-                const row = this.closest('tr');
-                const timeInputs = row.querySelectorAll('.time-input');
-                
-                if (this.value === 'absent' || this.value === 'excused') {
-                    timeInputs.forEach(input => {
-                        input.value = '';
-                        input.disabled = true;
-                    });
-                } else {
-                    timeInputs.forEach(input => {
-                        input.disabled = false;
-                    });
-                }
-            });
-        });
-    });
-    </script>
-    @endpush
-
-    @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
         // Auto-calculate age based on birthdate
         const birthdateInput = document.querySelector('input[name="birthdate"]');
         const ageInput = document.querySelector('input[name="age"]');
@@ -978,6 +1007,7 @@
     });
     </script>
     @endpush
+
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -1151,106 +1181,18 @@
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Schedule configuration
-        const schedule = {
-            morning: {
-                timeIn: '{{ $batch->morning_time_in }}',
-                timeOut: '{{ $batch->morning_time_out }}'
-            },
-            afternoon: {
-                timeIn: '{{ $batch->afternoon_time_in }}',
-                timeOut: '{{ $batch->afternoon_time_out }}'
-            }
-        };
-    
-        // Validate attendance date
-        const attendanceDateInput = document.querySelector('input[name="attendance_date"]');
-        const startDate = new Date('{{ $batch->start_date }}');
-        const endDate = new Date('{{ $batch->end_date }}');
-    
-        attendanceDateInput.addEventListener('change', function() {
-            const selectedDate = new Date(this.value);
-            if (selectedDate < startDate || selectedDate > endDate) {
-                alert('Selected date must be within the training period');
-                this.value = new Date().toISOString().split('T')[0];
-            }
-        });
-    
-        // Time input validation
-        document.querySelectorAll('.time-input').forEach(input => {
-            input.addEventListener('change', function() {
-                const studentId = this.dataset.studentId;
-                const session = this.dataset.session;
-                const inputType = this.classList.contains(`${session}-time-in`) ? 'timeIn' : 'timeOut';
-                
-                validateTimeEntry(this, session, inputType, studentId);
-            });
-        });
-    
-        function validateTimeEntry(input, session, inputType, studentId) {
-            const timeValue = input.value;
-            const expectedTime = schedule[session][inputType];
-    
-            // Validate time range
-            if (inputType === 'timeIn') {
-                if (timeValue < schedule[session].timeIn) {
-                    alert(`${session.charAt(0).toUpperCase() + session.slice(1)} time in cannot be before ${formatTime(schedule[session].timeIn)}`);
-                    input.value = '';
-                    return;
-                }
-                // Calculate late minutes
-                if (timeValue > schedule[session].timeIn) {
-                    const lateMinutes = calculateLateness(schedule[session].timeIn, timeValue);
-                    document.querySelector(`input[name="students[${studentId}][${session}_minutes_late]"]`).value = lateMinutes;
-                }
-            }
-    
-            // Validate time out is after time in
-            if (inputType === 'timeOut') {
-                const timeIn = document.querySelector(`input[name="students[${studentId}][${session}_time_in]"]`).value;
-                if (timeIn && timeValue <= timeIn) {
-                    alert('Time out must be after time in');
-                    input.value = '';
-                    return;
-                }
-            }
-        }
-    
-        function calculateLateness(expectedTime, actualTime) {
-            const [expectedHour, expectedMinute] = expectedTime.split(':');
-            const [actualHour, actualMinute] = actualTime.split(':');
-            
-            const expected = new Date(2000, 0, 1, expectedHour, expectedMinute);
-            const actual = new Date(2000, 0, 1, actualHour, actualMinute);
-            
-            return Math.max(0, Math.floor((actual - expected) / 60000));
-        }
-    
-        function formatTime(time) {
-            return new Date(`2000-01-01T${time}`).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        }
-    });
-    </script>
-    @endpush
-
-    @push('scripts')
-    <script>
-        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+        const schedules = window.courseSchedules;
+        
+        const form = document.getElementById('attendanceForm');
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
-            const token = document.querySelector('meta[name="csrf-token"]').content;
-        
             fetch(this.action, {
                 method: 'POST',
+                body: new FormData(this),
                 headers: {
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json'
-                },
-                body: formData
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
             })
             .then(response => response.json())
             .then(data => {
@@ -1258,26 +1200,144 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: data.message || 'Attendance saved successfully',
-                        showConfirmButton: false,
-                        timer: 1500
+                        text: 'Attendance has been recorded successfully',
+                        timer: 2000,
+                        showConfirmButton: false
                     }).then(() => {
-                        window.location.reload();
+                        // Close the modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('attendanceModal'));
+                        modal.hide();
+                        
+                        // Optionally refresh the page
+                        // window.location.reload();
                     });
                 } else {
-                    throw new Error(data.message || 'Failed to save attendance');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Something went wrong!'
+                    });
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',
-                    text: error.message || 'Something went wrong while saving attendance',
-                    confirmButtonColor: '#3085d6'
+                    text: 'Something went wrong!'
                 });
             });
         });
+        // Handle status changes
+        document.querySelectorAll('select[name$="[status]"]').forEach(select => {
+            select.addEventListener('change', function() {
+                const row = this.closest('tr');
+                const studentId = row.querySelector('.time-input').dataset.studentId;
+                
+                const morningTimeIn = row.querySelector(`input[name="students[${studentId}][morning_time_in]"]`);
+                const morningTimeOut = row.querySelector(`input[name="students[${studentId}][morning_time_out]"]`);
+                const afternoonTimeIn = row.querySelector(`input[name="students[${studentId}][afternoon_time_in]"]`);
+                const afternoonTimeOut = row.querySelector(`input[name="students[${studentId}][afternoon_time_out]"]`);
+                
+                // Clear any existing late minutes display
+                const lateDisplay = row.querySelector('.late-minutes');
+                if (lateDisplay) {
+                    lateDisplay.textContent = '';
+                }
+                
+                switch(this.value) {
+                    case 'present':
+                        morningTimeIn.value = schedules.morning.in;
+                        morningTimeOut.value = schedules.morning.out;
+                        afternoonTimeIn.value = schedules.afternoon.in;
+                        afternoonTimeOut.value = schedules.afternoon.out;
+                        
+                        morningTimeIn.disabled = false;
+                        morningTimeOut.disabled = false;
+                        afternoonTimeIn.disabled = false;
+                        afternoonTimeOut.disabled = false;
+                        break;
+                        
+                    case 'late':
+                        morningTimeOut.value = schedules.morning.out;
+                        afternoonTimeOut.value = schedules.afternoon.out;
+                        
+                        morningTimeIn.disabled = false;
+                        morningTimeOut.disabled = false;
+                        afternoonTimeIn.disabled = false;
+                        afternoonTimeOut.disabled = false;
+                        break;
+                        
+                    case 'absent':
+                        morningTimeIn.value = '';
+                        morningTimeOut.value = '';
+                        afternoonTimeIn.value = '';
+                        afternoonTimeOut.value = '';
+                        
+                        morningTimeIn.disabled = true;
+                        morningTimeOut.disabled = true;
+                        afternoonTimeIn.disabled = true;
+                        afternoonTimeOut.disabled = true;
+                        break;
+                        
+                    case 'excused':
+                        morningTimeIn.value = '';
+                        morningTimeOut.value = '';
+                        afternoonTimeIn.value = '';
+                        afternoonTimeOut.value = '';
+                        
+                        morningTimeIn.disabled = false;
+                        morningTimeOut.disabled = false;
+                        afternoonTimeIn.disabled = false;
+                        afternoonTimeOut.disabled = false;
+                        break;
+                }
+            });
+        });
+
+        // Calculate minutes late
+        function calculateLateness(actualTime, scheduledTime) {
+            if (!actualTime) return 0;
+            
+            const [actualHours, actualMinutes] = actualTime.split(':').map(Number);
+            const [schedHours, schedMinutes] = scheduledTime.split(':').map(Number);
+            
+            const actualTotalMinutes = (actualHours * 60) + actualMinutes;
+            const schedTotalMinutes = (schedHours * 60) + schedMinutes;
+            
+            return Math.max(0, actualTotalMinutes - schedTotalMinutes);
+        }
+
+        // Add time input event listeners
+        document.querySelectorAll('.time-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const row = this.closest('tr');
+                const studentId = this.dataset.studentId;
+                const session = this.dataset.session;
+                
+                if ((session === 'morning' && this.classList.contains('morning-time-in')) ||
+                    (session === 'afternoon' && this.classList.contains('afternoon-time-in'))) {
+                    
+                    const scheduledTime = schedules[session].in;
+                    const lateMinutes = calculateLateness(this.value, scheduledTime);
+
+                    if (lateMinutes > 0) {
+                        row.querySelector('select[name$="[status]"]').value = 'late';
+                        showLateMinutes(row, lateMinutes, session);
+                    }
+                }
+            });
+        });
+
+        function showLateMinutes(row, minutes, session) {
+            let lateDisplay = row.querySelector('.late-minutes');
+            if (!lateDisplay) {
+                lateDisplay = document.createElement('small');
+                lateDisplay.className = 'late-minutes text-danger ms-2';
+                row.querySelector('.late-minutes-cell').appendChild(lateDisplay);
+            }
+            lateDisplay.textContent = `${session}: ${minutes} min late`;
+        }
+    });
     </script>
     @endpush
 </x-adminlayout>

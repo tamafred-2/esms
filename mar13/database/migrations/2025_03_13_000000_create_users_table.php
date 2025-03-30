@@ -29,6 +29,10 @@ return new class extends Migration
             $table->string('civil_status')->nullable();
             $table->string('nationality')->nullable();
             $table->string('classification')->nullable();
+            // Add these new fields
+            $table->string('district')->nullable();
+            $table->string('highest_grade')->nullable();
+            $table->string('course_program')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

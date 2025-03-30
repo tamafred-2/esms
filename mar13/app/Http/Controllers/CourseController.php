@@ -327,9 +327,9 @@ class CourseController extends Controller
     
     public function showBatch(Course $course, CourseBatch $batch)
     {
-        // Get enrollments with user data
         $enrollments = $batch->enrollments()->with('user')->get()->map(function($enrollment) {
             return (object)[
+                // Basic Information
                 'id' => $enrollment->id,
                 'lastname' => $enrollment->user->lastname,
                 'firstname' => $enrollment->user->firstname,
@@ -337,10 +337,41 @@ class CourseController extends Controller
                 'email' => $enrollment->user->email,
                 'contact_number' => $enrollment->user->contact_number,
                 'created_at' => $enrollment->created_at,
-                'status' => $enrollment->status
+                'status' => $enrollment->status,
+                
+                // Personal Information
+                'gender' => $enrollment->user->gender,
+                'birthdate' => $enrollment->user->birthdate,
+                'civil_status' => $enrollment->user->civil_status,
+                'nationality' => $enrollment->user->nationality,
+                'classification' => $enrollment->user->classification,
+                'age' => $enrollment->user->age, // Added age
+                
+                // Address Information
+                'street_address' => $enrollment->user->street_address,
+                'barangay' => $enrollment->user->barangay,
+                'municipality' => $enrollment->user->municipality,
+                'province' => $enrollment->user->province,
+                'district' => $enrollment->user->district,
+                
+                // Educational Background
+                'highest_grade' => $enrollment->user->highest_grade, // Added highest grade
+                'course_program' => $enrollment->user->course_program, // Added course program
+                
+                // Additional Fields from BatchEnrollment
+                'registration_status' => $enrollment->registration_status,
+                'delivery_mode' => $enrollment->delivery_mode,
+                'provider_type' => $enrollment->provider_type,
+                'region' => $enrollment->region,
+                'provider_province' => $enrollment->province,
+                'congressional_district' => $enrollment->congressional_district,
+                'provider_municipality' => $enrollment->municipality,
+                
+                // Add user relationship for access to all user fields
+                'user' => $enrollment->user
             ];
         });
-    
+        
         // Get the school from the course relationship
         $school = $course->school;
         // Get sectors specific to this school
@@ -611,7 +642,6 @@ class CourseController extends Controller
 
         return response()->json($stats);
     }
-
     public function enrollStudent(Request $request, Course $course, CourseBatch $batch)
     {
         try {
@@ -628,13 +658,22 @@ class CourseController extends Controller
                 'barangay' => 'required|string',
                 'municipality' => 'required|string',
                 'province' => 'required|string',
+                'district' => 'required|string',
                 'civil_status' => 'required|string',
                 'nationality' => 'required|string',
                 'classification' => 'required|string',
+                'highest_grade' => 'required|string',
+                'course_program' => 'required|string',
+                // TVET Provider Profile fields
+                'registration_status' => 'required|string',
+                'delivery_mode' => 'required|string',
+                'provider_type' => 'required|string',
+                'region' => 'required|string',
+                'congressional_district' => 'required|string',
             ]);
-
+    
             DB::beginTransaction();
-
+    
             // Create new user
             $user = User::create([
                 'lastname' => $validated['lastname'],
@@ -649,22 +688,32 @@ class CourseController extends Controller
                 'barangay' => $validated['barangay'],
                 'municipality' => $validated['municipality'],
                 'province' => $validated['province'],
+                'district' => $validated['district'],
                 'civil_status' => $validated['civil_status'],
                 'nationality' => $validated['nationality'],
                 'classification' => $validated['classification'],
+                'highest_grade' => $validated['highest_grade'],
+                'course_program' => $validated['course_program'],
                 'usertype' => 'Student'
             ]);
-
+    
             // Create enrollment record
             $enrollment = BatchEnrollment::create([
                 'user_id' => $user->id,
                 'batch_id' => $batch->id,
                 'status' => 'enrolled',
                 'enrolled_at' => now(),
+                'registration_status' => $validated['registration_status'],
+                'delivery_mode' => $validated['delivery_mode'],
+                'provider_type' => $validated['provider_type'],
+                'region' => $validated['region'],
+                'province' => $validated['province'],
+                'congressional_district' => $validated['congressional_district'],
+                'municipality' => $validated['municipality']
             ]);
-
+    
             DB::commit();
-
+    
             return response()->json([
                 'success' => true,
                 'message' => 'Student enrolled successfully',
@@ -673,7 +722,7 @@ class CourseController extends Controller
                     'enrollment' => $enrollment
                 ]
             ]);
-
+    
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -681,12 +730,14 @@ class CourseController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-
+    
         } catch (\Exception $e) {
+            DB::rollBack(); // Add this line to ensure rollback on any exception
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
     }
+    
 }
