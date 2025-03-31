@@ -495,10 +495,18 @@ public function storeEvent(Request $request)
             ], 500);
         }
     }
+
     public function showSchool(School $school)
     {
+        // Load courses with their batch counts
+        $school->load(['courses' => function($query) {
+            $query->withCount('courseBatches');
+        }]);
+
         $icon = '<i class="bi bi-building me-2"></i> School Details';
-        $button = '<a href="' . route('admin.dashboard') . '" class="btn btn-custom" style="color: white;"><i class="bi bi-arrow-left"></i> Back to Schools</a>';
+        $button = '<a href="' . route('admin.dashboard') . '" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Back to School
+        </a>';
         
         // Get available staff (users with staff usertype who aren't already assigned to this school)
         $availableStaff = User::where('usertype', 'staff')

@@ -29,7 +29,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.course.index', ['course' => $course->id]) }}">Courses</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.school.show', ['school' => $school->id]) }}">Courses</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.course.batches.index', ['course' => $course->id]) }}">Batches</a></li>
                                                 
                         <li class="breadcrumb-item active">Batch #{{ $batch->id }}</li>

@@ -39,6 +39,11 @@ class School extends Model
                     ->wherePivot('is_active', true);
     }
 
+    public function batches()
+    {
+        return $this->hasMany(BatchEnrollment::class);
+    }
+
     // Add this accessor for easy logo URL access
     public function getLogoUrlAttribute()
     {

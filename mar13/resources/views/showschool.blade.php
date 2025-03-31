@@ -191,7 +191,7 @@
                                                         </span>
                                                         <span>
                                                             <i class="bi bi-people me-1"></i>
-                                                            {{ $course->batches_count ?? 0 }} {{ Str::plural('batch', $course->batches_count ?? 0) }}
+                                                            {{ $course->course_batches_count ?? 0 }} {{ Str::plural('batch', $course->course_batches_count ?? 0) }}
                                                         </span>
                                                     </div>
                                                 </div>

@@ -24,7 +24,12 @@ class CourseController extends Controller
 {
     public function index()
     {
-        $courses = Course::with(['sector', 'school', 'courseBatches'])->paginate(10);
+        $courses = Course::with([
+            'sector', 
+            'school',
+            'courseBatches' // Changed from 'batches' to 'courseBatches'
+        ])->paginate(10);
+        
         $sectors = Sector::all();
         $icon = 'bi bi-book';
         $button = [
@@ -32,7 +37,6 @@ class CourseController extends Controller
             'route' => route('admin.course.create')
         ];
         
-        // Remove the condition from the blade file since we don't need school data
         return view('admin.course.index', compact('courses', 'sectors', 'icon', 'button'));
     }
 
@@ -45,7 +49,7 @@ class CourseController extends Controller
             'text' => 'Back to Courses',
             'route' => route('admin.course.index')
         ];
-        return view('admin.course.create', compact('schools', 'sectors', 'icon', 'button'));
+        return view('admin.courses.create', compact('schools', 'sectors', 'icon', 'button'));
     }
     
     public function store(Request $request)
@@ -399,7 +403,7 @@ class CourseController extends Controller
             'icon',
             'button',
             'school',
-            'schedules'
+            'schedules'  // Added schedules to the compact
         ));
     }
     

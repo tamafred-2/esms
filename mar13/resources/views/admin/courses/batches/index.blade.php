@@ -1,22 +1,142 @@
 <x-adminlayout>
-    <div class="container">
+<style>
+/* Card Styling */
+.batch-card {
+    transition: all 0.3s ease;
+    border: none;
+    background: #fff;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.batch-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+}
+
+.card-status-bar {
+    height: 4px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+/* Gradient Classes */
+.gradient-success {
+    background: linear-gradient(to right, #28a745, #20c997);
+}
+
+.gradient-warning {
+    background: linear-gradient(to right, #ffc107, #fd7e14);
+}
+
+.gradient-secondary {
+    background: linear-gradient(to right, #6c757d, #495057);
+}
+
+/* Info Cards */
+.info-card {
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    background-color: #f8f9fa !important;
+}
+
+.icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+}
+
+/* Progress Bar */
+.progress {
+    background-color: #e9ecef;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 1rem;
+    transition: width 0.6s ease;
+}
+
+/* Buttons */
+.btn-light {
+    border: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 3rem;
+    background-color: #f8f9fa;
+    border-radius: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Badge Styling */
+.badge {
+    padding: 0.5em 1em;
+    font-weight: 500;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+/* Pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    border: none;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 0.25rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .col-md-4 {
+        margin-bottom: 1rem;
+    }
+    
+    .info-card {
+        padding: 1rem !important;
+    }
+}
+</style>
+    <div class="container-fluid px-4">
         <!-- Header Section -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="mb-1">{{ $course->name }} - Batches</h4>
-                <p class="text-muted mb-0">
-                    <i class="bi bi-people me-1"></i>Manage course batches and enrollments
-                </p>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.course.show', ['course' => $course, 'batch' => $batch]) }}">Courses</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.school.show', $course->school) }}">Courses</a></li>
                     </ol>
                 </nav>
             </div>
-            <a href="{{ route('admin.course.batches.index', $course) }}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left"></i> Back to Batches
-            </a>
+            <a href="{{ route('admin.school.show', $course->school) }}" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> Back to School</a>
         </div>
         <div class="d-flex justify-content-end mb-3">
             <button type="button" class="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#addBatchModal">
