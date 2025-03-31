@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CourseController;
-use App\Http\Controllers\EventController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\SectorController;
@@ -126,6 +126,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
         });
     });
 });
+
+
+
+
+// Staff routes
+Route::middleware(['auth', 'staff'])->group(function () {
+    Route::get('/staff/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
+});
+
+
+
+
+
+
 
 
 Route::post('/logout', [DashboardController::class, 'logout'])->name('logout');

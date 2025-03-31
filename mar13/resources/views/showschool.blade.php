@@ -568,7 +568,77 @@
             </div>
         </div>
     </div>
-    
+    @push('scripts')
+    <script>
+        // Add this to your existing scripts
+        document.addEventListener('DOMContentLoaded', function() {
+            const assignStaffForm = document.getElementById('assignStaffForm');
+            
+            if (assignStaffForm) {
+                assignStaffForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    
+                    // Disable button and show loading state
+                    submitButton.disabled = true;
+                    const originalText = submitButton.innerHTML;
+                    submitButton.innerHTML = `
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Assigning...
+                    `;
+        
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message using SweetAlert2
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Close the modal
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('assignStaffModal'));
+                                if (modal) {
+                                    modal.hide();
+                                }
+                                // Reload the page to show updated staff list
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Failed to assign staff');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Failed to assign staff'
+                        });
+                    })
+                    .finally(() => {
+                        // Restore button state
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalText;
+                    });
+                });
+            }
+        });
+        
+    </script>
+    @endpush
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {

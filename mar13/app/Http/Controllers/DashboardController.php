@@ -57,31 +57,44 @@ public function storeEvent(Request $request)
         }
         return view('login');
     }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
-
+    
         $user = User::where('email', $credentials['email'])->first();
         
-        if (!$user || $user->usertype !== 'admin') {
+        if (!$user) {
             return redirect()->route('login')
-                ->with('error', 'Unauthorized access. Admin privileges required.')
+                ->withErrors(['email' => 'Invalid credentials.'])
                 ->withInput($request->only('email'));
         }
-
+    
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             
-            return redirect()->intended(route('admin.dashboard'));
+            // Redirect based on user type
+            if ($user->usertype === 'staff') {
+                return redirect()->intended(route('staff.dashboard'))->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
+            } elseif ($user->usertype === 'admin') {
+                return redirect()->intended(route('admin.dashboard'))->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
+            }
+            
+            // If usertype is neither staff nor admin
+            Auth::logout();
+            return redirect()->route('login')
+                ->with('error', 'Invalid user type.')
+                ->withInput($request->only('email'));
         }
-
+    
         return redirect()->route('login')
             ->withErrors(['email' => 'Invalid credentials.'])
             ->withInput($request->only('email'));
     }
+    
     
     public function __construct()
     {

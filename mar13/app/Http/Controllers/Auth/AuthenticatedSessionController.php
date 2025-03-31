@@ -33,8 +33,8 @@ class AuthenticatedSessionController extends Controller
     
         if ($user->usertype === 'admin') {
             return redirect()->route('admin.dashboard');
-        } elseif ($user->usertype === 'user') {
-            return redirect()->route('user.dashboard');
+        } elseif ($user->usertype === 'staff') {
+            return redirect()->route('staff.dashboard');
         } else {
             return redirect()->route('student.dashboard');
         }
