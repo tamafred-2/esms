@@ -1,4 +1,6 @@
 <x-adminlayout>
+<meta name="course-id" content="{{ $course->id }}">
+<meta name="batch-id" content="{{ $batch->id }}">
 @push('scripts')
     <script>
         window.courseSchedules = {
@@ -512,9 +514,10 @@
         }
     </style>
     @endpush
+
     <!-- View Attendance Modal -->
     <div class="modal fade" id="viewAttendanceModal" tabindex="-1" aria-labelledby="viewAttendanceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-xl" style="max-width: 70%;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewAttendanceModalLabel">Attendance Records</h5>
@@ -536,20 +539,25 @@
 
                     <!-- Attendance Records Table -->
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-light">
+                        <table class="table table-sm">
+                            <thead>
                                 <tr>
-                                    <th rowspan="2" class="align-middle">Student Name</th>
-                                    <th colspan="2" class="text-center border-end">Morning Session</th>
-                                    <th colspan="2" class="text-center border-end">Afternoon Session</th>
-                                    <th rowspan="2" class="align-middle text-center">Status</th>
-                                    <th rowspan="2" class="align-middle text-center">Minutes Late</th>
+                                    <th>Student Name</th>
+                                    <th colspan="2" class="text-center border-end">Morning ({{ $schedules['morning']['in'] }} - {{ $schedules['morning']['out'] }})</th>
+                                    <th colspan="2" class="text-center">Afternoon ({{ $schedules['afternoon']['in'] }} - {{ $schedules['afternoon']['out'] }})</th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
                                 </tr>
                                 <tr>
+                                    <th></th>
                                     <th class="text-center">Time In</th>
                                     <th class="text-center border-end">Time Out</th>
                                     <th class="text-center">Time In</th>
-                                    <th class="text-center border-end">Time Out</th>
+                                    <th class="text-center">Time Out</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Late Minutes</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTableBody">
@@ -565,9 +573,85 @@
         </div>
     </div>
 
+    <!-- Edit Attendance Modal -->
+    <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-labelledby="editAttendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAttendanceModalLabel">Edit Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editAttendanceForm">
+                        <input type="hidden" id="editStudentId" name="student_id">
+                        <input type="hidden" id="editDate" name="attendance_date">
+                        
+                        <div class="col-12 mb-3">
+                            <h6 class="border-bottom pb-2">Morning Session</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Time In</label>
+                                    <input type="time" 
+                                        class="form-control" 
+                                        id="editMorningTimeIn" 
+                                        name="morning_time_in">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Time Out</label>
+                                    <input type="time" 
+                                        class="form-control" 
+                                        id="editMorningTimeOut" 
+                                        name="morning_time_out">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <h6 class="border-bottom pb-2">Afternoon Session</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Time In</label>
+                                    <input type="time" 
+                                        class="form-control" 
+                                        id="editAfternoonTimeIn" 
+                                        name="afternoon_time_in">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Time Out</label>
+                                    <input type="time" 
+                                        class="form-control" 
+                                        id="editAfternoonTimeOut" 
+                                        name="afternoon_time_out">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Leave fields empty to mark as absent for that session.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveAttendanceChanges">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+        
     <!-- Attendance Modal -->
     <div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-xl" style="max-width: 70%;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="attendanceModalLabel">Attendance Record</h5>
@@ -682,6 +766,56 @@
         </div>
     </div>
 
+    @push('styles')
+    <style>
+        #editAttendanceModal .modal-content {
+            border-radius: 0.5rem;
+        }
+
+        #editAttendanceModal .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        #editAttendanceModal .border-bottom {
+            border-bottom: 1px solid #dee2e6 !important;
+            margin-bottom: 1rem;
+        }
+
+        #editAttendanceModal .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        #editAttendanceModal .alert-info {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: #6c757d;
+        }
+
+        #editAttendanceModal .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        #editAttendanceModal .btn-primary {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        #editAttendanceModal .modal-footer {
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+
+        @media (max-width: 576px) {
+            #editAttendanceModal .modal-dialog {
+                margin: 0.5rem;
+            }
+        }
+    </style>
+    @endpush
     @push('styles')
     <style>
         .section-header {
@@ -1005,84 +1139,538 @@
 
 
 
-    @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const courseId = "{{ $course->id }}";
-        const batchId = "{{ $batch->id }}";
-        const dateSelect = document.getElementById('attendanceDateSelect');
-        const tableBody = document.getElementById('attendanceTableBody');
-        
-        dateSelect.addEventListener('change', function() {
-            const selectedDate = this.value;
-            if (!selectedDate) return;
-            
-            // Fetch attendance data for selected date
-            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/${selectedDate}/records`)
-                .then(response => response.json())
-                .then(data => {
-                    updateAttendanceTable(data);
-                    updateSummary(data);
-                })
-                .catch(error => console.error('Error:', error));
-            });
-        
-            function updateAttendanceTable(attendanceData) {
-                tableBody.innerHTML = '';
-                
-                attendanceData.sort((a, b) => a.lastName.localeCompare(b.lastName));
-                
-                attendanceData.forEach(record => {
-                    const row = document.createElement('tr');
-                    
-                    // Calculate morning status badge
-                    let morningStatusBadge = '';
-                    if (record.morningStatus === 'present') {
-                        morningStatusBadge = '<span class="badge bg-success">Present</span>';
-                    } else if (record.morningStatus === 'late') {
-                        morningStatusBadge = '<span class="badge bg-warning">Late</span>';
-                    } else {
-                        morningStatusBadge = '<span class="badge bg-danger">Absent</span>';
-                    }
+@push('styles')
+<style>
+    /* Add these to your existing styles */
+    .text-success {
+        color: #198754 !important;
+        font-weight: 100;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+        font-weight: 100;
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+        font-weight: 100;
+    }
+    
+    .text-secondary {
+        color: #6c757d !important;
+        font-weight: 100;
+    }
+</style>
+@endpush
+@push('styles')
+<style>
+    /* Edit modal validation styles */
+    .is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
 
-                    // Calculate afternoon status badge
-                    let afternoonStatusBadge = '';
-                    if (record.afternoonStatus === 'present') {
-                        afternoonStatusBadge = '<span class="badge bg-success">Present</span>';
-                    } else if (record.afternoonStatus === 'late') {
-                        afternoonStatusBadge = '<span class="badge bg-warning">Late</span>';
-                    } else {
-                        afternoonStatusBadge = '<span class="badge bg-danger">Absent</span>';
-                    }
-                    
-                    row.innerHTML = `
-                        <td>${record.lastName}, ${record.firstName} ${record.middleName ? record.middleName[0] + '.' : ''}</td>
-                        <td class="text-center">${record.morningTimeIn || '-'}</td>
-                        <td class="text-center border-end">${record.morningTimeOut || '-'}</td>
-                        <td class="text-center">${record.afternoonTimeIn || '-'}</td>
-                        <td class="text-center border-end">${record.afternoonTimeOut || '-'}</td>
-                        <td class="text-center">
-                            ${morningStatusBadge}<br>
-                            ${afternoonStatusBadge}
-                        </td>
-                        <td class="text-center">
-                            <span class="${record.morningLateMinutes > 0 ? 'text-danger' : ''}">${record.morningLateMinutes || '0'}</span><br>
-                            <span class="${record.afternoonLateMinutes > 0 ? 'text-danger' : ''}">${record.afternoonLateMinutes || '0'}</span>
-                        </td>
-                    `;
-                    
-                    tableBody.appendChild(row);
-                });
+    .invalid-feedback {
+        display: none;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+    }
+
+    .is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+</style>
+@endpush
+
+
+@push('scripts')
+<script>
+    // Add this to your existing JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get schedule times from your backend (you'll need to pass these from PHP)
+        const schedules = {
+            morning: {
+                start: '08:00',
+                end: '12:00'
+            },
+            afternoon: {
+                start: '13:00',
+                end: '17:00'
+            }
+        };
+    
+        // Validation function for time inputs
+        function validateTimeInput(timeIn, timeOut, session) {
+            const errors = {};
+            
+            // If one field is filled, both should be filled
+            if ((timeIn && !timeOut) || (!timeIn && timeOut)) {
+                errors[`${session}_time_in`] = `Both ${session} time in and time out are required`;
+                errors[`${session}_time_out`] = `Both ${session} time in and time out are required`;
+                return errors;
+            }
+    
+            // If both fields are empty, it's valid (marked as absent)
+            if (!timeIn && !timeOut) {
+                return errors;
+            }
+    
+            // Convert times to comparable values
+            const timeInValue = timeIn;
+            const timeOutValue = timeOut;
+            const sessionStart = schedules[session].start;
+            const sessionEnd = schedules[session].end;
+    
+            // Validate time in is within session hours
+            if (timeInValue < sessionStart) {
+                errors[`${session}_time_in`] = `Time in cannot be before ${sessionStart}`;
+            }
+    
+            // Validate time out is within session hours
+            if (timeOutValue > sessionEnd) {
+                errors[`${session}_time_out`] = `Time out cannot be after ${sessionEnd}`;
+            }
+    
+            // Validate time out is after time in
+            if (timeInValue >= timeOutValue) {
+                errors[`${session}_time_out`] = 'Time out must be after time in';
+            }
+    
+            return errors;
+        }
+    
+        // Function to show validation errors
+        function showValidationErrors(errors) {
+            // Reset all fields first
+            document.querySelectorAll('#editAttendanceForm .is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+    
+            // Show new errors
+            Object.keys(errors).forEach(fieldName => {
+                const field = document.querySelector(`#editAttendanceForm [name="${fieldName}"]`);
+                if (field) {
+                    field.classList.add('is-invalid');
+                    field.nextElementSibling.textContent = errors[fieldName];
+                }
+            });
+        }
+    
+        // Handle save changes
+        document.getElementById('saveAttendanceChanges').addEventListener('click', function(e) {
+            e.preventDefault();
+        
+            // Get form values
+            const morningTimeIn = document.getElementById('editMorningTimeIn').value;
+            const morningTimeOut = document.getElementById('editMorningTimeOut').value;
+            const afternoonTimeIn = document.getElementById('editAfternoonTimeIn').value;
+            const afternoonTimeOut = document.getElementById('editAfternoonTimeOut').value;
+            const studentId = document.getElementById('editStudentId').value;
+            const attendanceDate = document.getElementById('editDate').value;
+        
+            // Validate both sessions
+            const morningErrors = validateTimeInput(morningTimeIn, morningTimeOut, 'morning');
+            const afternoonErrors = validateTimeInput(afternoonTimeIn, afternoonTimeOut, 'afternoon');
+        
+            // Combine all errors
+            const errors = { ...morningErrors, ...afternoonErrors };
+        
+            // If there are errors, show them and stop
+            if (Object.keys(errors).length > 0) {
+                showValidationErrors(errors);
+                return;
             }
         
-        function updateSummary(data) {
-            document.getElementById('presentCount').textContent = data.filter(r => r.status === 'present').length;
-            document.getElementById('lateCount').textContent = data.filter(r => r.status === 'late').length;
-            document.getElementById('absentCount').textContent = data.filter(r => r.status === 'absent').length;
+            // If validation passes, proceed with saving
+            const formData = new FormData();
+            formData.append('student_id', studentId);
+            formData.append('attendance_date', attendanceDate);
+            formData.append('morning_time_in', morningTimeIn);
+            formData.append('morning_time_out', morningTimeOut);
+            formData.append('afternoon_time_in', afternoonTimeIn);
+            formData.append('afternoon_time_out', afternoonTimeOut);
+        
+            const button = this;
+        
+            // Disable button and show loading state
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = `
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Saving...
+            `;
+        
+            // Send update request
+            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Attendance record updated successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+        
+                    // Close edit modal
+                    bootstrap.Modal.getInstance(document.getElementById('editAttendanceModal')).hide();
+        
+                    // Refresh the attendance table
+                    document.getElementById('attendanceDateSelect').dispatchEvent(new Event('change'));
+                } else {
+                    throw new Error(data.message || 'Failed to update attendance');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Failed to update attendance record'
+                });
+            })
+            .finally(() => {
+                // Restore button state
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
+        });
+        
+    
+        // Add input event listeners for real-time validation
+        const timeInputs = document.querySelectorAll('#editAttendanceForm input[type="time"]');
+        timeInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const session = this.name.includes('morning') ? 'morning' : 'afternoon';
+                const timeIn = document.querySelector(`[name="${session}_time_in"]`).value;
+                const timeOut = document.querySelector(`[name="${session}_time_out"]`).value;
+                
+                const errors = validateTimeInput(timeIn, timeOut, session);
+                showValidationErrors(errors);
+            });
+        });
+    });
+    
+</script>
+@endpush
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const attendanceDateSelect = document.getElementById('attendanceDateSelect');
+        const attendanceTableBody = document.getElementById('attendanceTableBody');
+        const courseId = document.querySelector('meta[name="course-id"]').content;
+        const batchId = document.querySelector('meta[name="batch-id"]').content;
+    
+        // Initialize the edit modal
+        const editModal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+    
+        // Function to populate table row
+        function createAttendanceRow(record) {
+            // Function to get status with text color
+            function getStatusWithColor(status) {
+                let colorClass;
+                switch (status.toLowerCase()) {
+                    case 'present':
+                        colorClass = 'text-success';
+                        break;
+                    case 'late':
+                        colorClass = 'text-warning';
+                        break;
+                    case 'absent':
+                        colorClass = 'text-danger';
+                        break;
+                    default:
+                        colorClass = 'text-secondary';
+                }
+                return `<span class="${colorClass}">${status.toUpperCase()}</span>`;
+            }
+        
+            return `
+                <tr data-student-id="${record.student_id}">
+                    <td class="align-middle">
+                        ${record.student_name}
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm time-input"
+                            value="${record.morning_time_in || ''}"
+                            readonly>
+                    </td>
+                    <td class="border-end">
+                        <input type="time" 
+                            class="form-control form-control-sm"
+                            value="${record.morning_time_out || ''}"
+                            readonly>
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm time-input"
+                            value="${record.afternoon_time_in || ''}"
+                            readonly>
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm"
+                            value="${record.afternoon_time_out || ''}"
+                            readonly>
+                    </td>
+                    <td class="text-center align-middle">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <span class="small fw-bold">AM:</span> 
+                            <span class="ms-1">${getStatusWithColor(record.morning_status)}</span>
+                            <span class="mx-1">|</span>
+                            <span class="small fw-bold">PM:</span> 
+                            <span class="ms-1">${getStatusWithColor(record.afternoon_status)}</span>
+                        </div>
+                    </td>
+                    <td class="text-center align-middle">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <span class="small fw-bold">AM:</span> 
+                            <span class="ms-1">${record.morning_late_minutes || '0'}</span>
+                            <span class="mx-1">|</span>
+                            <span class="small fw-bold">PM:</span> 
+                            <span class="ms-1">${record.afternoon_late_minutes || '0'}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" 
+                            class="btn btn-sm btn-primary edit-attendance" 
+                            data-student-id="${record.student_id}"
+                            data-student-name="${record.student_name}"
+                            data-morning-in="${record.morning_time_in || ''}"
+                            data-morning-out="${record.morning_time_out || ''}"
+                            data-afternoon-in="${record.afternoon_time_in || ''}"
+                            data-afternoon-out="${record.afternoon_time_out || ''}">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        
+        // Function to determine status display
+        function getStatusDisplay(record) {
+            let morningPresent = record.morning_time_in && record.morning_time_out;
+            let afternoonPresent = record.afternoon_time_in && record.afternoon_time_out;
+    
+            if (morningPresent && afternoonPresent) {
+                return 'PRESENT';
+            } else if (morningPresent || afternoonPresent) {
+                return 'HALF DAY';
+            } else if (record.morning_time_in || record.afternoon_time_in) {
+                return 'INCOMPLETE';
+            }
+            return 'ABSENT';
+        }
+    
+        // Handle date selection change
+        attendanceDateSelect.addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (!selectedDate) {
+                attendanceTableBody.innerHTML = '';
+                return;
+            }
+
+            // Show loading state
+            attendanceTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            // Fetch attendance data for selected date using the correct route
+            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/${selectedDate}/records`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        attendanceTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    No attendance records found for this date.
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    attendanceTableBody.innerHTML = data
+                        .sort((a, b) => a.student_name.localeCompare(b.student_name))
+                        .map(record => createAttendanceRow(record))
+                        .join('');
+                } else if (data.error) {
+                    throw new Error(data.error);
+                } else {
+                    throw new Error('Invalid data format received');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                attendanceTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-danger">
+                            <div class="alert alert-danger mb-0">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Failed to load attendance records: ${error.message}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    
+        // Handle edit button click
+        document.addEventListener('click', function(e) {
+            const editButton = e.target.closest('.edit-attendance');
+            if (editButton) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get data from button attributes
+                const studentId = editButton.dataset.studentId;
+                const studentName = editButton.dataset.studentName;
+                const morningIn = editButton.dataset.morningIn;
+                const morningOut = editButton.dataset.morningOut;
+                const afternoonIn = editButton.dataset.afternoonIn;
+                const afternoonOut = editButton.dataset.afternoonOut;
+    
+                // Populate edit modal fields
+                document.getElementById('editStudentId').value = studentId;
+                document.getElementById('editDate').value = attendanceDateSelect.value;
+                document.getElementById('editMorningTimeIn').value = morningIn;
+                document.getElementById('editMorningTimeOut').value = morningOut;
+                document.getElementById('editAfternoonTimeIn').value = afternoonIn;
+                document.getElementById('editAfternoonTimeOut').value = afternoonOut;
+    
+                // Update modal title with student name
+                document.getElementById('editAttendanceModalLabel').textContent = 
+                    `Edit Attendance - ${studentName}`;
+    
+                // Show the modal
+                editModal.show();
+            }
+        });
+
+
+        // Handle save changes in edit modal
+        document.getElementById('saveAttendanceChanges').addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = document.getElementById('editAttendanceForm');
+            const formData = new FormData(form);
+            const button = this;
+
+            // Disable button and show loading state
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = `
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Saving...
+            `;
+
+            // Send update request using the correct route
+            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Attendance record updated successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    // Close edit modal
+                    editModal.hide();
+
+                    // Refresh the attendance table
+                    attendanceDateSelect.dispatchEvent(new Event('change'));
+                } else {
+                    throw new Error(data.message || 'Failed to update attendance');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Failed to update attendance record'
+                });
+            })
+            .finally(() => {
+                // Restore button state
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
+        });
+    
+        // Reset form when edit modal is hidden
+        document.getElementById('editAttendanceModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('editAttendanceForm').reset();
+        });
+    
+        // Prevent view attendance modal from closing when edit modal is opened
+        document.getElementById('editAttendanceModal').addEventListener('show.bs.modal', function (event) {
+            event.stopPropagation();
+        });
+    
+        // Initialize with current date if available
+        if (attendanceDateSelect.value) {
+            attendanceDateSelect.dispatchEvent(new Event('change'));
         }
     });
-    </script>
-    @endpush
+    
+</script>
+@endpush
 
     @push('scripts')
         <script>

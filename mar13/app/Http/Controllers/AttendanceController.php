@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
@@ -92,29 +93,126 @@ class AttendanceController extends Controller
         }
     }
 
-    public function getAttendanceByDate(Course $course, CourseBatch $batch, $date)
+    public function getAttendanceByDate($course, $batch, $date)
     {
-        $attendance = Attendance::with(['student'])
-            ->where('batch_id', $batch->id)
-            ->where('attendance_date', $date)
-            ->get()
-            ->map(function ($record) {
-                return [
-                    'lastName' => $record->student->lastname,
-                    'firstName' => $record->student->firstname,
-                    'middleName' => $record->student->middlename,
-                    'morningTimeIn' => $record->morning_time_in,
-                    'morningTimeOut' => $record->morning_time_out,
-                    'afternoonTimeIn' => $record->afternoon_time_in,
-                    'afternoonTimeOut' => $record->afternoon_time_out,
-                    'morningStatus' => $record->morning_status,
-                    'afternoonStatus' => $record->afternoon_status,
-                    'morningLateMinutes' => $record->morning_late_minutes,
-                    'afternoonLateMinutes' => $record->afternoon_late_minutes
-                ];
-            });
+        try {
+            $attendances = Attendance::where('batch_id', $batch)
+                ->where('attendance_date', $date)
+                ->with('student')
+                ->get()
+                ->map(function ($attendance) {
+                    return [
+                        'student_id' => $attendance->student_id,
+                        'student_name' => $attendance->full_student_name,
+                        'morning_time_in' => $attendance->morning_time_in ? $attendance->morning_time_in->format('H:i') : null,
+                        'morning_time_out' => $attendance->morning_time_out ? $attendance->morning_time_out->format('H:i') : null,
+                        'afternoon_time_in' => $attendance->afternoon_time_in ? $attendance->afternoon_time_in->format('H:i') : null,
+                        'afternoon_time_out' => $attendance->afternoon_time_out ? $attendance->afternoon_time_out->format('H:i') : null,
+                        'morning_status' => $attendance->morning_status,
+                        'afternoon_status' => $attendance->afternoon_status,
+                        'morning_late_minutes' => $attendance->morning_late_minutes ?? 0,
+                        'afternoon_late_minutes' => $attendance->afternoon_late_minutes ?? 0,
+                    ];
+                });
     
-        return response()->json($attendance);
+            return response()->json($attendances);
+    
+        } catch (\Exception $e) {
+            Log::error('Attendance fetch error:', [
+                'message' => $e->getMessage(),
+                'batch' => $batch,
+                'date' => $date,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+    
+            return response()->json([
+                'error' => 'Failed to fetch attendance records: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    
+    public function updateAttendance(Request $request)
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'student_id' => 'required|exists:users,id',
+                'attendance_date' => 'required|date',
+                'morning_time_in' => 'nullable|date_format:H:i',
+                'morning_time_out' => 'nullable|date_format:H:i',
+                'afternoon_time_in' => 'nullable|date_format:H:i',
+                'afternoon_time_out' => 'nullable|date_format:H:i',
+            ]);
+    
+            // Find or create attendance record
+            $attendance = Attendance::updateOrCreate(
+                [
+                    'student_id' => $validated['student_id'],
+                    'attendance_date' => $validated['attendance_date'],
+                ],
+                [
+                    'morning_time_in' => $validated['morning_time_in'],
+                    'morning_time_out' => $validated['morning_time_out'],
+                    'afternoon_time_in' => $validated['afternoon_time_in'],
+                    'afternoon_time_out' => $validated['afternoon_time_out'],
+                    // Calculate status and late minutes
+                    'morning_status' => $this->calculateStatus($validated['morning_time_in'], $validated['morning_time_out'], 'morning'),
+                    'afternoon_status' => $this->calculateStatus($validated['afternoon_time_in'], $validated['afternoon_time_out'], 'afternoon'),
+                    'morning_late_minutes' => $this->calculateLateMinutes($validated['morning_time_in'], 'morning'),
+                    'afternoon_late_minutes' => $this->calculateLateMinutes($validated['afternoon_time_in'], 'afternoon'),
+                ]
+            );
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Attendance updated successfully',
+                'data' => $attendance
+            ]);
+    
+        } catch (\Exception $e) {
+            Log::error('Attendance update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update attendance: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    private function calculateStatus($timeIn, $timeOut, $session)
+    {
+        if (!$timeIn || !$timeOut) {
+            return 'absent';
+        }
+    
+        $scheduleStart = $session === 'morning' ? '08:00' : '13:00';
+        $timeIn = Carbon::createFromFormat('H:i', $timeIn);
+        $scheduleStart = Carbon::createFromFormat('H:i', $scheduleStart);
+    
+        if ($timeIn->gt($scheduleStart)) {
+            return 'late';
+        }
+    
+        return 'present';
+    }
+
+    private function calculateLateMinutes($timeIn, $session)
+    {
+        if (!$timeIn) {
+            return 0;
+        }
+    
+        $scheduleStart = $session === 'morning' ? '08:00' : '13:00';
+        $timeIn = Carbon::createFromFormat('H:i', $timeIn);
+        $scheduleStart = Carbon::createFromFormat('H:i', $scheduleStart);
+    
+        if ($timeIn->gt($scheduleStart)) {
+            // Fix: Swap the order of parameters to get positive minutes
+            return $scheduleStart->diffInMinutes($timeIn); // Changed from $timeIn->diffInMinutes($scheduleStart)
+        }
+    
+        return 0;
     }
     
     private function calculateLateness($actualTime, $scheduledTime): int

@@ -120,6 +120,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
                     Route::get('/', [AttendanceController::class, 'show'])->name('show');
                     Route::put('/{date}', [AttendanceController::class, 'update'])->name('update');
                     Route::get('/{date}/records', [AttendanceController::class, 'getAttendanceByDate'])->name('get-by-date');
+                    Route::post('/update', [AttendanceController::class, 'updateAttendance'])->name('update-record');
                 });
             });
         });
