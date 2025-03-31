@@ -27,42 +27,44 @@ class AttendanceController extends Controller
                 'students.*.morning_time_out' => 'nullable|string',
                 'students.*.afternoon_time_in' => 'nullable|string',
                 'students.*.afternoon_time_out' => 'nullable|string',
-                'students.*.status' => 'required|in:present,late,absent,excused'
+                'students.*.morning_status' => 'required|in:present,late,absent,excused',
+                'students.*.afternoon_status' => 'required|in:present,late,absent,excused',
+                'students.*.morning_late_minutes' => 'required|integer|min:0',
+                'students.*.afternoon_late_minutes' => 'required|integer|min:0',
             ]);
     
             DB::beginTransaction();
     
             foreach ($validated['students'] as $studentId => $attendance) {
-                $morningLateMinutes = 0;
-                $afternoonLateMinutes = 0;
+                $morningLateMinutes = (int) $attendance['morning_late_minutes'];
+                $afternoonLateMinutes = (int) $attendance['afternoon_late_minutes'];
+                
+                // Set default statuses if not provided
+                $morningStatus = $attendance['morning_status'];
+                $afternoonStatus = $attendance['afternoon_status'];
     
-                if ($attendance['status'] === 'late') {
-                    if ($attendance['morning_time_in']) {
-                        $morningLateMinutes = $this->calculateLateness(
-                            $attendance['morning_time_in'],
-                            $course->morning_schedule['in']
-                        );
-                    }
-                    if ($attendance['afternoon_time_in']) {
-                        $afternoonLateMinutes = $this->calculateLateness(
-                            $attendance['afternoon_time_in'],
-                            $course->afternoon_schedule['in']
-                        );
-                    }
+                // Update status based on late minutes if time is provided
+                if ($attendance['morning_time_in']) {
+                    $morningStatus = $morningLateMinutes > 15 ? 'late' : 'present';
+                }
+    
+                if ($attendance['afternoon_time_in']) {
+                    $afternoonStatus = $afternoonLateMinutes > 15 ? 'late' : 'present';
                 }
     
                 Attendance::updateOrCreate(
                     [
                         'batch_id' => $batch->id,
-                        'student_id' => $studentId, // Changed from user_id to student_id
+                        'student_id' => $studentId,
                         'attendance_date' => $validated['attendance_date']
                     ],
                     [
-                        'morning_time_in' => $attendance['morning_time_in'],
-                        'morning_time_out' => $attendance['morning_time_out'],
-                        'afternoon_time_in' => $attendance['afternoon_time_in'],
-                        'afternoon_time_out' => $attendance['afternoon_time_out'],
-                        'status' => $attendance['status'],
+                        'morning_time_in' => $attendance['morning_time_in'] ?? null,
+                        'morning_time_out' => $attendance['morning_time_out'] ?? null,
+                        'afternoon_time_in' => $attendance['afternoon_time_in'] ?? null,
+                        'afternoon_time_out' => $attendance['afternoon_time_out'] ?? null,
+                        'morning_status' => $morningStatus,
+                        'afternoon_status' => $afternoonStatus,
                         'morning_late_minutes' => $morningLateMinutes,
                         'afternoon_late_minutes' => $afternoonLateMinutes,
                     ]
@@ -82,6 +84,7 @@ class AttendanceController extends Controller
     
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Attendance Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error recording attendance: ' . $e->getMessage()
@@ -89,15 +92,32 @@ class AttendanceController extends Controller
         }
     }
     
-    
-    private function calculateLateness($actualTime, $scheduledTime)
+    private function calculateLateness($actualTime, $scheduledTime): int
     {
-        $actual = \Carbon\Carbon::createFromFormat('H:i', $actualTime);
-        $scheduled = \Carbon\Carbon::createFromFormat('H:i', $scheduledTime);
-        
+        if (!$actualTime || !$scheduledTime) {
+            return 0;
+        }
+    
+        $actual = Carbon::createFromFormat('H:i', $actualTime);
+        $scheduled = Carbon::createFromFormat('H:i', $scheduledTime);
+    
         return max(0, $actual->diffInMinutes($scheduled));
     }
-
+    
+    private function determineOverallStatus($morningStatus, $afternoonStatus): string
+    {
+        if ($morningStatus === 'late' || $afternoonStatus === 'late') {
+            return 'late';
+        }
+        if ($morningStatus === 'present' || $afternoonStatus === 'present') {
+            return 'present';
+        }
+        if ($morningStatus === 'excused' || $afternoonStatus === 'excused') {
+            return 'excused';
+        }
+        return 'absent';
+    }
+    
     public function show(BatchEnrollment $batch, $date = null)
     {
         $date = $date ?? now()->toDateString();

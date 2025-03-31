@@ -7,14 +7,22 @@
                 <p class="text-muted mb-0">
                     <i class="bi bi-people me-1"></i>Manage course batches and enrollments
                 </p>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.course.show', ['course' => $course, 'batch' => $batch]) }}">Courses</a></li>
+                    </ol>
+                </nav>
             </div>
-            <button type="button" class="btn btn-primary d-flex align-items-center" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#addBatchModal">
+            <a href="{{ route('admin.course.batches.index', $course) }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Batches
+            </a>
+        </div>
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" class="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#addBatchModal">
                 <i class="bi bi-plus-lg me-2"></i>Add New Batch
             </button>
         </div>
-
         @if($batches->count() > 0)
             <div class="row g-4">
                 @foreach($batches as $batch)

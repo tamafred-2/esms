@@ -14,17 +14,16 @@ class Attendance extends Model
         'morning_time_out',
         'afternoon_time_in',
         'afternoon_time_out',
-        'status',
+        'morning_status',
+        'afternoon_status',
         'morning_late_minutes',
         'afternoon_late_minutes'
     ];
 
     protected $casts = [
         'attendance_date' => 'date',
-        'morning_time_in' => 'datetime',
-        'morning_time_out' => 'datetime',
-        'afternoon_time_in' => 'datetime',
-        'afternoon_time_out' => 'datetime'
+        'morning_late_minutes' => 'integer',
+        'afternoon_late_minutes' => 'integer'
     ];
 
     public function batch()

@@ -7,6 +7,7 @@
     <title>El Nazareno | Admin</title>
 
     <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -176,6 +177,7 @@
     @endif
 
     <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap Bundle with Popper -->

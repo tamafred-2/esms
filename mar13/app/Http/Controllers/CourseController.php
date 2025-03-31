@@ -24,19 +24,15 @@ class CourseController extends Controller
 {
     public function index()
     {
-        $courses = Course::with([
-            'sector', 
-            'school',
-            'courseBatches' // Changed from 'batches' to 'courseBatches'
-        ])->paginate(10);
-        
+        $courses = Course::with(['sector', 'school', 'courseBatches'])->paginate(10);
         $sectors = Sector::all();
         $icon = 'bi bi-book';
         $button = [
             'text' => 'Add New Course',
-            'route' => route('admin.courses.create')
+            'route' => route('admin.course.create')
         ];
         
+        // Remove the condition from the blade file since we don't need school data
         return view('admin.course.index', compact('courses', 'sectors', 'icon', 'button'));
     }
 
@@ -49,7 +45,7 @@ class CourseController extends Controller
             'text' => 'Back to Courses',
             'route' => route('admin.course.index')
         ];
-        return view('admin.courses.create', compact('schools', 'sectors', 'icon', 'button'));
+        return view('admin.course.create', compact('schools', 'sectors', 'icon', 'button'));
     }
     
     public function store(Request $request)
@@ -377,6 +373,18 @@ class CourseController extends Controller
         // Get sectors specific to this school
         $sectors = Sector::where('school_id', $school->id)->get();
         
+        // Add schedules data
+        $schedules = [
+            'morning' => [
+                'in' => $batch->morning_time_in ?? '08:00',    // Replace with actual batch schedule or default
+                'out' => $batch->morning_time_out ?? '12:00'   // Replace with actual batch schedule or default
+            ],
+            'afternoon' => [
+                'in' => $batch->afternoon_time_in ?? '13:00',  // Replace with actual batch schedule or default
+                'out' => $batch->afternoon_time_out ?? '17:00' // Replace with actual batch schedule or default
+            ]
+        ];
+        
         $icon = 'bi bi-collection';
         $button = [
             'text' => 'Back to Batches',
@@ -390,7 +398,8 @@ class CourseController extends Controller
             'sectors',
             'icon',
             'button',
-            'school'
+            'school',
+            'schedules'
         ));
     }
     
@@ -642,9 +651,14 @@ class CourseController extends Controller
 
         return response()->json($stats);
     }
+
     public function enrollStudent(Request $request, Course $course, CourseBatch $batch)
     {
         try {
+            // Calculate the minimum and maximum dates for age validation
+            $maxDate = now()->subYears(17)->format('Y-m-d'); // For minimum age of 17
+            $minDate = now()->subYears(60)->format('Y-m-d'); // For maximum age of 60
+    
             $validated = $request->validate([
                 'lastname' => 'required|string|max:255',
                 'firstname' => 'required|string|max:255',
@@ -653,7 +667,12 @@ class CourseController extends Controller
                 'contact_number' => 'required|string|max:20',
                 'password' => 'required|min:8|confirmed',
                 'gender' => 'required|in:Male,Female',
-                'birthdate' => 'required|date',
+                'birthdate' => [
+                    'required',
+                    'date',
+                    'before_or_equal:' . $maxDate,
+                    'after_or_equal:' . $minDate
+                ],
                 'street_address' => 'required|string',
                 'barangay' => 'required|string',
                 'municipality' => 'required|string',
@@ -670,11 +689,14 @@ class CourseController extends Controller
                 'provider_type' => 'required|string',
                 'region' => 'required|string',
                 'congressional_district' => 'required|string',
+            ], [
+                'birthdate.before_or_equal' => 'Student must be at least 17 years old to enroll.',
+                'birthdate.after_or_equal' => 'Student must not be older than 60 years to enroll.'
             ]);
     
             DB::beginTransaction();
     
-            // Create new user
+            // Rest of your existing code remains the same
             $user = User::create([
                 'lastname' => $validated['lastname'],
                 'firstname' => $validated['firstname'],
@@ -732,12 +754,11 @@ class CourseController extends Controller
             ], 422);
     
         } catch (\Exception $e) {
-            DB::rollBack(); // Add this line to ensure rollback on any exception
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
     }
-    
 }

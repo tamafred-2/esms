@@ -1,17 +1,25 @@
 <x-adminlayout>
-@php
-    // Verify these variables are available
-    if (!isset($course) || !isset($batch)) {
-        throw new Exception('Course or Batch not found');
-    }
-@endphp
+@push('scripts')
+    <script>
+        window.courseSchedules = {
+            morning: {
+                in: "{{ $schedules['morning']['in'] }}",
+                out: "{{ $schedules['morning']['out'] }}"
+            },
+            afternoon: {
+                in: "{{ $schedules['afternoon']['in'] }}",
+                out: "{{ $schedules['afternoon']['out'] }}"
+            }
+        };
+    </script>
 
-@php
-    $schedules = [
-        'morning' => $course->morning_schedule,
-        'afternoon' => $course->afternoon_schedule
-    ];
-@endphp
+    {{-- Then your main JavaScript code --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your existing JavaScript code here
+        });
+    </script>
+@endpush
 
     <div class="container-fluid px-4">
         <!-- Header Section -->
@@ -21,8 +29,9 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.course.batches.index', ['course' => $course->id]) }}">Courses</a></li>
-                        
+                        <li class="breadcrumb-item"><a href="{{ route('admin.course.index', ['course' => $course->id]) }}">Courses</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.course.batches.index', ['course' => $course->id]) }}">Batches</a></li>
+                                                
                         <li class="breadcrumb-item active">Batch #{{ $batch->id }}</li>
                     </ol>
                 </nav>
@@ -489,8 +498,14 @@
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <label class="form-label">Date</label>
-                                <input type="date" name="attendance_date" class="form-control" required 
-                                    min="{{ $batch->start_date }}" max="{{ $batch->end_date }}">
+                                <input type="date" 
+                                    name="attendance_date" 
+                                    class="form-control" 
+                                    required 
+                                    min="{{ $batch->start_date }}" 
+                                    max="{{ min($batch->end_date, date('Y-m-d')) }}"
+                                    value="{{ date('Y-m-d') }}"
+                                    id="attendanceDate">
                             </div>
                         </div>
 
@@ -501,8 +516,8 @@
                                         <th>Student Name</th>
                                         <th colspan="2" class="text-center border-end">Morning ({{ $schedules['morning']['in'] }} - {{ $schedules['morning']['out'] }})</th>
                                         <th colspan="2" class="text-center">Afternoon ({{ $schedules['afternoon']['in'] }} - {{ $schedules['afternoon']['out'] }})</th>
-                                        <th>Status</th>
-                                        <th>Late Minutes</th>
+                                        <th></th>
+                                        <th></th>
                                     </tr>
                                     <tr>
                                         <th></th>
@@ -510,52 +525,67 @@
                                         <th class="text-center border-end">Time Out</th>
                                         <th class="text-center">Time In</th>
                                         <th class="text-center">Time Out</th>
-                                        <th></th>
-                                        <th></th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center">Late Minutes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($batch->enrollments as $enrollment)
+                                @foreach($batch->enrollments->sortBy(function($enrollment) {
+                                    return $enrollment->user->lastname . ', ' . $enrollment->user->firstname;
+                                }) as $enrollment)
                                     <tr>
-                                        <td>{{ $enrollment->user->lastname }}, {{ $enrollment->user->firstname }}</td>
+                                        <td class="align-middle">
+                                            {{ $enrollment->user->lastname }}, {{ $enrollment->user->firstname }}
+                                            @if($enrollment->user->middlename)
+                                                {{ $enrollment->user->middlename[0] }}.
+                                            @endif
+                                        </td>
                                         <td>
                                             <input type="time" 
-                                                class="form-control form-control-sm time-input morning-time-in" 
+                                                class="form-control form-control-sm time-input"
                                                 name="students[{{ $enrollment->user_id }}][morning_time_in]"
-                                                data-student-id="{{ $enrollment->user_id }}"
-                                                data-session="morning">
+                                                data-student-id="{{ $enrollment->user_id }}">
                                         </td>
                                         <td class="border-end">
                                             <input type="time" 
-                                                class="form-control form-control-sm time-input morning-time-out" 
+                                                class="form-control form-control-sm"
                                                 name="students[{{ $enrollment->user_id }}][morning_time_out]"
-                                                data-student-id="{{ $enrollment->user_id }}"
-                                                data-session="morning">
+                                                readonly>
                                         </td>
                                         <td>
                                             <input type="time" 
-                                                class="form-control form-control-sm time-input afternoon-time-in" 
+                                                class="form-control form-control-sm time-input"
                                                 name="students[{{ $enrollment->user_id }}][afternoon_time_in]"
-                                                data-student-id="{{ $enrollment->user_id }}"
-                                                data-session="afternoon">
+                                                data-student-id="{{ $enrollment->user_id }}">
                                         </td>
                                         <td>
                                             <input type="time" 
-                                                class="form-control form-control-sm time-input afternoon-time-out" 
+                                                class="form-control form-control-sm"
                                                 name="students[{{ $enrollment->user_id }}][afternoon_time_out]"
-                                                data-student-id="{{ $enrollment->user_id }}"
-                                                data-session="afternoon">
+                                                readonly>
                                         </td>
-                                        <td>
-                                            <select class="form-select form-select-sm" 
-                                                    name="students[{{ $enrollment->user_id }}][status]">
-                                                <option value="present">Present</option>
-                                                <option value="late">Late</option>
-                                                <option value="absent">Absent</option>
-                                                <option value="excused">Excused</option>
-                                            </select>
+                                        <td style="min-width: 180px;">
+                                            <input type="text" 
+                                                class="form-control form-control-sm status-display text-center"
+                                                readonly
+                                                value="ABSENT">
+                                            <!-- Hidden status and late minutes fields -->
+                                            <input type="hidden" 
+                                                name="students[{{ $enrollment->user_id }}][morning_status]" 
+                                                value="absent">
+                                            <input type="hidden" 
+                                                name="students[{{ $enrollment->user_id }}][afternoon_status]" 
+                                                value="absent">
+                                            <input type="hidden" 
+                                                name="students[{{ $enrollment->user_id }}][morning_late_minutes]" 
+                                                value="0">
+                                            <input type="hidden" 
+                                                name="students[{{ $enrollment->user_id }}][afternoon_late_minutes]" 
+                                                value="0">
                                         </td>
-                                        <td class="late-minutes-cell"></td>
+                                        <td class="late-minutes-cell">
+                                            <!-- Late minutes will be displayed here -->
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -863,6 +893,160 @@
     }
     </style>
     @endpush
+
+
+
+
+@push('styles')
+<style>
+    /* Style for date input */
+    input[type="date"] {
+        position: relative;
+    }
+
+    /* Disable dates outside the allowed range */
+    input[type="date"]:invalid {
+        border-color: #dc3545;
+    }
+
+    /* Add some hover effect */
+    input[type="date"]:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Style when focused */
+    input[type="date"]:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+@endpush
+
+
+
+
+
+    @push('scripts')
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the date input element
+            const dateInput = document.getElementById('attendanceDate');
+            
+            // Get batch training period
+            const batchStartDate = new Date("{{ $batch->start_date }}");
+            const batchEndDate = new Date("{{ $batch->end_date }}");
+            
+            // Get today's date and reset time to midnight for proper comparison
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Format dates for input min/max
+            dateInput.min = formatDate(batchStartDate);
+            dateInput.max = formatDate(batchEndDate);
+            
+            // Set default value to today if within range, otherwise set to start date
+            if (today >= batchStartDate && today <= batchEndDate) {
+                dateInput.value = formatDate(today);
+            } else {
+                dateInput.value = formatDate(batchStartDate);
+            }
+            
+            // Add event listener to validate date selection
+            dateInput.addEventListener('change', function(e) {
+                const selectedDate = new Date(this.value);
+                selectedDate.setHours(0, 0, 0, 0); // Reset time for proper comparison
+                
+                // Check if selected date is a weekend
+                const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6;
+                
+                // Check if date is within range and not in future
+                const isInRange = selectedDate >= batchStartDate && selectedDate <= batchEndDate;
+                const isFutureDate = selectedDate > today;
+                
+                if (isFutureDate) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date',
+                        text: 'Cannot select future dates for attendance.',
+                    });
+                } else if (!isInRange) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date',
+                        text: 'Please select a date within the training period.',
+                    });
+                    // Reset to default value
+                    if (today >= batchStartDate && today <= batchEndDate) {
+                        this.value = formatDate(today);
+                    } else {
+                        this.value = formatDate(batchStartDate);
+                    }
+                } else if (isWeekend) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Weekend Selected',
+                        text: 'The selected date falls on a weekend. Do you want to continue?',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            // Reset to default value
+                            if (today >= batchStartDate && today <= batchEndDate) {
+                                this.value = formatDate(today);
+                            } else {
+                                this.value = formatDate(batchStartDate);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Helper function to format date as YYYY-MM-DD
+            function formatDate(date) {
+                const d = new Date(date);
+                let month = '' + (d.getMonth() + 1);
+                let day = '' + d.getDate();
+                const year = d.getFullYear();
+                
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+                
+                return [year, month, day].join('-');
+            }
+            
+            // Add this to your existing attendance form submit handler
+            const attendanceForm = document.getElementById('attendanceForm');
+            attendanceForm.addEventListener('submit', function(e) {
+                const selectedDate = new Date(dateInput.value);
+                selectedDate.setHours(0, 0, 0, 0);
+                const isInRange = selectedDate >= batchStartDate && selectedDate <= batchEndDate;
+                const isFutureDate = selectedDate > today;
+                
+                if (isFutureDate) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date',
+                        text: 'Cannot select future dates for attendance.',
+                    });
+                } else if (!isInRange) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date',
+                        text: 'Please select a date within the training period.',
+                    });
+                }
+            });
+        });
+        </script>
+    @endpush
+    
+    
+
+
+
 
     @push('scripts')
     <script>
@@ -1177,167 +1361,256 @@
         });
     </script>
     @endpush
-
+    
     @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const schedules = window.courseSchedules;
-        
-        const form = document.getElementById('attendanceForm');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const schedules = window.courseSchedules;
             
-            fetch(this.action, {
-                method: 'POST',
-                body: new FormData(this),
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Attendance has been recorded successfully',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Close the modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('attendanceModal'));
-                        modal.hide();
-                        
-                        // Optionally refresh the page
-                        // window.location.reload();
-                    });
+            // Make all status inputs readonly
+            document.querySelectorAll('select[name$="[status]"]').forEach(select => {
+                const statusInput = document.createElement('input');
+                statusInput.type = 'text';
+                statusInput.name = select.name;
+                statusInput.className = 'form-control form-control-sm status-input';
+                statusInput.readOnly = true;
+                statusInput.value = 'ABSENT'; // Default value
+                select.parentNode.replaceChild(statusInput, select);
+            });
+    
+            // Make all time out inputs readonly
+            document.querySelectorAll('input[name*="time_out"]').forEach(input => {
+                input.readOnly = true;
+                input.style.backgroundColor = '#e9ecef';
+            });
+    
+            // Function to handle time in changes
+            function handleTimeInChange(timeInInput, session) {
+                const row = timeInInput.closest('tr');
+                const studentId = timeInInput.dataset.studentId;
+                const timeOutInput = row.querySelector(`input[name="students[${studentId}][${session}_time_out]"]`);
+    
+                console.log('Time In Changed:', {
+                    session: session,
+                    timeInValue: timeInInput.value,
+                    scheduledOut: schedules[session].out
+                });
+    
+                if (timeInInput.value) {
+                    timeOutInput.value = schedules[session].out;
                 } else {
+                    timeOutInput.value = '';
+                }
+                updateStatus(row);
+            }
+    
+            // Add event listeners for time in fields
+            document.querySelectorAll('input[name*="morning_time_in"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    handleTimeInChange(this, 'morning');
+                });
+            });
+    
+            document.querySelectorAll('input[name*="afternoon_time_in"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    handleTimeInChange(this, 'afternoon');
+                });
+            });
+    
+            const form = document.getElementById('attendanceForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Attendance has been recorded successfully',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('attendanceModal'));
+                            modal.hide();
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: data.message || 'Something went wrong!'
+                        });
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: data.message || 'Something went wrong!'
+                        text: 'Something went wrong!'
                     });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Something went wrong!'
                 });
             });
-        });
-        // Handle status changes
-        document.querySelectorAll('select[name$="[status]"]').forEach(select => {
-            select.addEventListener('change', function() {
-                const row = this.closest('tr');
+    
+            function updateStatus(row) {
                 const studentId = row.querySelector('.time-input').dataset.studentId;
-                
+                const displayInput = row.querySelector('.status-display');
+                const morningStatusInput = row.querySelector(`input[name="students[${studentId}][morning_status]"]`);
+                const afternoonStatusInput = row.querySelector(`input[name="students[${studentId}][afternoon_status]"]`);
                 const morningTimeIn = row.querySelector(`input[name="students[${studentId}][morning_time_in]"]`);
-                const morningTimeOut = row.querySelector(`input[name="students[${studentId}][morning_time_out]"]`);
                 const afternoonTimeIn = row.querySelector(`input[name="students[${studentId}][afternoon_time_in]"]`);
-                const afternoonTimeOut = row.querySelector(`input[name="students[${studentId}][afternoon_time_out]"]`);
+            
+                // Add hidden inputs for late minutes if they don't exist
+                let morningLateInput = row.querySelector(`input[name="students[${studentId}][morning_late_minutes]"]`);
+                let afternoonLateInput = row.querySelector(`input[name="students[${studentId}][afternoon_late_minutes]"]`);
                 
-                // Clear any existing late minutes display
-                const lateDisplay = row.querySelector('.late-minutes');
-                if (lateDisplay) {
-                    lateDisplay.textContent = '';
+                if (!morningLateInput) {
+                    morningLateInput = document.createElement('input');
+                    morningLateInput.type = 'hidden';
+                    morningLateInput.name = `students[${studentId}][morning_late_minutes]`;
+                    row.appendChild(morningLateInput);
                 }
                 
-                switch(this.value) {
-                    case 'present':
-                        morningTimeIn.value = schedules.morning.in;
-                        morningTimeOut.value = schedules.morning.out;
-                        afternoonTimeIn.value = schedules.afternoon.in;
-                        afternoonTimeOut.value = schedules.afternoon.out;
-                        
-                        morningTimeIn.disabled = false;
-                        morningTimeOut.disabled = false;
-                        afternoonTimeIn.disabled = false;
-                        afternoonTimeOut.disabled = false;
-                        break;
-                        
-                    case 'late':
-                        morningTimeOut.value = schedules.morning.out;
-                        afternoonTimeOut.value = schedules.afternoon.out;
-                        
-                        morningTimeIn.disabled = false;
-                        morningTimeOut.disabled = false;
-                        afternoonTimeIn.disabled = false;
-                        afternoonTimeOut.disabled = false;
-                        break;
-                        
-                    case 'absent':
-                        morningTimeIn.value = '';
-                        morningTimeOut.value = '';
-                        afternoonTimeIn.value = '';
-                        afternoonTimeOut.value = '';
-                        
-                        morningTimeIn.disabled = true;
-                        morningTimeOut.disabled = true;
-                        afternoonTimeIn.disabled = true;
-                        afternoonTimeOut.disabled = true;
-                        break;
-                        
-                    case 'excused':
-                        morningTimeIn.value = '';
-                        morningTimeOut.value = '';
-                        afternoonTimeIn.value = '';
-                        afternoonTimeOut.value = '';
-                        
-                        morningTimeIn.disabled = false;
-                        morningTimeOut.disabled = false;
-                        afternoonTimeIn.disabled = false;
-                        afternoonTimeOut.disabled = false;
-                        break;
+                if (!afternoonLateInput) {
+                    afternoonLateInput = document.createElement('input');
+                    afternoonLateInput.type = 'hidden';
+                    afternoonLateInput.name = `students[${studentId}][afternoon_late_minutes]`;
+                    row.appendChild(afternoonLateInput);
                 }
-            });
-        });
-
-        // Calculate minutes late
-        function calculateLateness(actualTime, scheduledTime) {
-            if (!actualTime) return 0;
             
-            const [actualHours, actualMinutes] = actualTime.split(':').map(Number);
-            const [schedHours, schedMinutes] = scheduledTime.split(':').map(Number);
+                clearLateMinutes(row);
             
-            const actualTotalMinutes = (actualHours * 60) + actualMinutes;
-            const schedTotalMinutes = (schedHours * 60) + schedMinutes;
+                let morningStatus = 'ABSENT';
+                let afternoonStatus = 'ABSENT';
+                let morningLateMinutes = 0;
+                let afternoonLateMinutes = 0;
             
-            return Math.max(0, actualTotalMinutes - schedTotalMinutes);
-        }
-
-        // Add time input event listeners
-        document.querySelectorAll('.time-input').forEach(input => {
-            input.addEventListener('change', function() {
-                const row = this.closest('tr');
-                const studentId = this.dataset.studentId;
-                const session = this.dataset.session;
-                
-                if ((session === 'morning' && this.classList.contains('morning-time-in')) ||
-                    (session === 'afternoon' && this.classList.contains('afternoon-time-in'))) {
-                    
-                    const scheduledTime = schedules[session].in;
-                    const lateMinutes = calculateLateness(this.value, scheduledTime);
-
-                    if (lateMinutes > 0) {
-                        row.querySelector('select[name$="[status]"]').value = 'late';
-                        showLateMinutes(row, lateMinutes, session);
-                    }
+                if (morningTimeIn.value) {
+                    morningLateMinutes = calculateLateness(morningTimeIn.value, schedules.morning.in);
+                    morningStatus = morningLateMinutes > 15 ? 'LATE' : 'PRESENT';
+                    morningStatusInput.value = morningLateMinutes > 15 ? 'late' : 'present';
+                    morningLateInput.value = morningLateMinutes;
                 }
-            });
-        });
-
-        function showLateMinutes(row, minutes, session) {
-            let lateDisplay = row.querySelector('.late-minutes');
-            if (!lateDisplay) {
-                lateDisplay = document.createElement('small');
-                lateDisplay.className = 'late-minutes text-danger ms-2';
-                row.querySelector('.late-minutes-cell').appendChild(lateDisplay);
+            
+                if (afternoonTimeIn.value) {
+                    afternoonLateMinutes = calculateLateness(afternoonTimeIn.value, schedules.afternoon.in);
+                    afternoonStatus = afternoonLateMinutes > 15 ? 'LATE' : 'PRESENT';
+                    afternoonStatusInput.value = afternoonLateMinutes > 15 ? 'late' : 'present';
+                    afternoonLateInput.value = afternoonLateMinutes;
+                }
+            
+                // Update display and show late minutes
+                const displayStatus = `AM: ${morningStatus} | PM: ${afternoonStatus}`;
+                displayInput.value = displayStatus;
+            
+                if (morningStatus === 'LATE' || afternoonStatus === 'LATE') {
+                    displayInput.className = 'form-control form-control-sm status-display text-danger';
+                } else if (morningStatus === 'PRESENT' || afternoonStatus === 'PRESENT') {
+                    displayInput.className = 'form-control form-control-sm status-display text-success';
+                } else {
+                    displayInput.className = 'form-control form-control-sm status-display text-secondary';
+                }
+            
+                // Show late minutes if any
+                if (morningLateMinutes > 0) {
+                    showLateMinutes(row, morningLateMinutes, 'morning', morningStatus === 'LATE');
+                }
+                if (afternoonLateMinutes > 0) {
+                    showLateMinutes(row, afternoonLateMinutes, 'afternoon', afternoonStatus === 'LATE');
+                }
             }
-            lateDisplay.textContent = `${session}: ${minutes} min late`;
-        }
-    });
-    </script>
+            
+    
+            function calculateLateness(actualTime, scheduledTime) {
+                if (!actualTime || !scheduledTime) return 0;
+                
+                const [actualHours, actualMinutes] = actualTime.split(':').map(Number);
+                const [schedHours, schedMinutes] = scheduledTime.split(':').map(Number);
+                
+                const actualTotalMinutes = (actualHours * 60) + actualMinutes;
+                const schedTotalMinutes = (schedHours * 60) + schedMinutes;
+                
+                return Math.max(0, actualTotalMinutes - schedTotalMinutes);
+            }
+    
+            function showLateMinutes(row, minutes, session, isLate) {
+                let lateDisplayContainer = row.querySelector('.late-minutes-cell');
+                let lateDisplay = lateDisplayContainer.querySelector(`.late-minutes-${session}`);
+                
+                if (!lateDisplay) {
+                    lateDisplay = document.createElement('small');
+                    lateDisplay.className = `late-minutes-${session} late-minutes ms-2 d-block`;
+                    lateDisplayContainer.appendChild(lateDisplay);
+                }
+    
+                if (isLate) {
+                    lateDisplay.className = `late-minutes-${session} late-minutes ms-2 d-block text-danger`;
+                    lateDisplay.textContent = `${session}: ${minutes} min late (Marked Late)`;
+                } else {
+                    lateDisplay.className = `late-minutes-${session} late-minutes ms-2 d-block text-warning`;
+                    lateDisplay.textContent = `${session}: ${minutes} min late (Within Grace Period)`;
+                }
+            }
+    
+            function clearLateMinutes(row) {
+                const lateDisplayCell = row.querySelector('.late-minutes-cell');
+                lateDisplayCell.innerHTML = '';
+            }
+    
+            // Initialize existing rows
+            document.querySelectorAll('tr').forEach(row => {
+                if (row.querySelector('input[name*="time_in"]')) {
+                    updateStatus(row);
+                }
+            });
+    
+            // Debug: Log the schedules object
+            console.log('Course Schedules:', schedules);
+        });
+        </script>
+        @endpush
+    
+    
+    @push('styles')
+        <style>
+            .text-warning {
+                color: #ffc107 !important;
+            }
+            .text-danger {
+                color: #dc3545 !important;
+            }
+            .text-success {
+                color: #198754 !important;
+            }
+            .text-secondary {
+                color: #6c757d !important;
+            }
+            .late-minutes {
+                font-size: 0.875rem;
+                font-weight: 500;
+            }
+            .late-minutes-cell {
+                min-width: 200px;
+            }
+            .d-block {
+                display: block;
+            }
+            .status-input {
+                font-weight: 500 !important;
+                text-align: center !important;
+                background-color: #f8f9fa !important;
+            }
+            input[readonly] {
+                cursor: default;
+            }
+        </style>
     @endpush
+    
 </x-adminlayout>
