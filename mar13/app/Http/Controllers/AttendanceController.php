@@ -91,6 +91,31 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    public function getAttendanceByDate(Course $course, CourseBatch $batch, $date)
+    {
+        $attendance = Attendance::with(['student'])
+            ->where('batch_id', $batch->id)
+            ->where('attendance_date', $date)
+            ->get()
+            ->map(function ($record) {
+                return [
+                    'lastName' => $record->student->lastname,
+                    'firstName' => $record->student->firstname,
+                    'middleName' => $record->student->middlename,
+                    'morningTimeIn' => $record->morning_time_in,
+                    'morningTimeOut' => $record->morning_time_out,
+                    'afternoonTimeIn' => $record->afternoon_time_in,
+                    'afternoonTimeOut' => $record->afternoon_time_out,
+                    'morningStatus' => $record->morning_status,
+                    'afternoonStatus' => $record->afternoon_status,
+                    'morningLateMinutes' => $record->morning_late_minutes,
+                    'afternoonLateMinutes' => $record->afternoon_late_minutes
+                ];
+            });
+    
+        return response()->json($attendance);
+    }
     
     private function calculateLateness($actualTime, $scheduledTime): int
     {

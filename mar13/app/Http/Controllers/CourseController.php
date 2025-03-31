@@ -324,7 +324,7 @@ class CourseController extends Controller
             ], 500);
         }
     }
-    
+
     public function showBatch(Course $course, CourseBatch $batch)
     {
         $enrollments = $batch->enrollments()->with('user')->get()->map(function($enrollment) {
@@ -345,7 +345,7 @@ class CourseController extends Controller
                 'civil_status' => $enrollment->user->civil_status,
                 'nationality' => $enrollment->user->nationality,
                 'classification' => $enrollment->user->classification,
-                'age' => $enrollment->user->age, // Added age
+                'age' => $enrollment->user->age,
                 
                 // Address Information
                 'street_address' => $enrollment->user->street_address,
@@ -355,8 +355,8 @@ class CourseController extends Controller
                 'district' => $enrollment->user->district,
                 
                 // Educational Background
-                'highest_grade' => $enrollment->user->highest_grade, // Added highest grade
-                'course_program' => $enrollment->user->course_program, // Added course program
+                'highest_grade' => $enrollment->user->highest_grade,
+                'course_program' => $enrollment->user->course_program,
                 
                 // Additional Fields from BatchEnrollment
                 'registration_status' => $enrollment->registration_status,
@@ -380,21 +380,49 @@ class CourseController extends Controller
         // Add schedules data
         $schedules = [
             'morning' => [
-                'in' => $batch->morning_time_in ?? '08:00',    // Replace with actual batch schedule or default
-                'out' => $batch->morning_time_out ?? '12:00'   // Replace with actual batch schedule or default
+                'in' => $batch->morning_time_in ?? '08:00',
+                'out' => $batch->morning_time_out ?? '12:00'
             ],
             'afternoon' => [
-                'in' => $batch->afternoon_time_in ?? '13:00',  // Replace with actual batch schedule or default
-                'out' => $batch->afternoon_time_out ?? '17:00' // Replace with actual batch schedule or default
+                'in' => $batch->afternoon_time_in ?? '13:00',
+                'out' => $batch->afternoon_time_out ?? '17:00'
             ]
         ];
+
+        // Get all distinct attendance dates for this batch
+        $attendanceDates = Attendance::where('batch_id', $batch->id)
+            ->distinct('attendance_date')
+            ->orderBy('attendance_date', 'desc')
+            ->pluck('attendance_date');
+
+        // Get current date's attendance if exists, otherwise null
+        $currentDate = now()->toDateString();
+        $currentAttendance = Attendance::with('student')
+            ->where('batch_id', $batch->id)
+            ->where('attendance_date', $currentDate)
+            ->get()
+            ->map(function ($record) {
+                return [
+                    'lastName' => $record->student->lastname,
+                    'firstName' => $record->student->firstname,
+                    'middleName' => $record->student->middlename,
+                    'morningTimeIn' => $record->morning_time_in,
+                    'morningTimeOut' => $record->morning_time_out,
+                    'afternoonTimeIn' => $record->afternoon_time_in,
+                    'afternoonTimeOut' => $record->afternoon_time_out,
+                    'morningStatus' => $record->morning_status,
+                    'afternoonStatus' => $record->afternoon_status,
+                    'morningLateMinutes' => $record->morning_late_minutes,
+                    'afternoonLateMinutes' => $record->afternoon_late_minutes
+                ];
+            });
         
         $icon = 'bi bi-collection';
         $button = [
             'text' => 'Back to Batches',
             'route' => route('admin.course.batches.index', $course) 
         ];
-    
+
         return view('admin.courses.batches.show', compact(
             'course',
             'batch',
@@ -403,9 +431,12 @@ class CourseController extends Controller
             'icon',
             'button',
             'school',
-            'schedules'  // Added schedules to the compact
+            'schedules',
+            'attendanceDates',
+            'currentAttendance'
         ));
     }
+    
     
     public function editBatch(Request $request, Course $course, CourseBatch $batch)
     {

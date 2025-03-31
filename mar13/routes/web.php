@@ -119,6 +119,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
                     Route::post('/', [AttendanceController::class, 'store'])->name('store');
                     Route::get('/', [AttendanceController::class, 'show'])->name('show');
                     Route::put('/{date}', [AttendanceController::class, 'update'])->name('update');
+                    Route::get('/{date}/records', [AttendanceController::class, 'getAttendanceByDate'])->name('get-by-date');
                 });
             });
         });

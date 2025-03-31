@@ -502,7 +502,7 @@ public function storeEvent(Request $request)
         $school->load(['courses' => function($query) {
             $query->withCount('courseBatches');
         }]);
-
+        
         $icon = '<i class="bi bi-building me-2"></i> School Details';
         $button = '<a href="' . route('admin.dashboard') . '" class="btn btn-outline-primary">
             <i class="bi bi-arrow-left"></i> Back to School
@@ -523,6 +523,7 @@ public function storeEvent(Request $request)
             'button'
         ));
     }
+    
     
     public function students(School $school, Request $request)
     {

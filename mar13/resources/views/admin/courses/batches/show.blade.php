@@ -122,13 +122,16 @@
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Enrolled Students</h5>
                     <div class="btn-group">
+                        <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#viewAttendanceModal">
+                            <i class="bi bi-calendar-check"></i> View Attendance
+                        </button>
                         <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#attendanceModal">
                             <i class="bi bi-calendar-check"></i> Attendance
                         </button>
+                        </div>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#enrollStudentModal">
                             <i class="bi bi-plus-lg"></i> Add Student
                         </button>
-                        </div>
                     </div>
                     <div class="card-body">
                         @if($enrollments->count() > 0)
@@ -480,6 +483,84 @@
                         <button type="submit" class="btn btn-primary">Enroll Student</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    @push('styles')
+    <style>
+        .table thead th {
+            background-color: #f8f9fa;
+            vertical-align: middle;
+        }
+        
+        .border-end {
+            border-right: 2px solid #dee2e6 !important;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(0,0,0,.075);
+        }
+        
+        .badge {
+            font-size: 0.875rem;
+            padding: 0.5em 0.75em;
+        }
+        
+        .minutes-late {
+            font-weight: bold;
+            color: #dc3545;
+        }
+    </style>
+    @endpush
+    <!-- View Attendance Modal -->
+    <div class="modal fade" id="viewAttendanceModal" tabindex="-1" aria-labelledby="viewAttendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewAttendanceModalLabel">Attendance Records</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Date Selection -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Date</label>
+                            <select class="form-select" id="attendanceDateSelect">
+                                <option value="">Choose a date...</option>
+                                @foreach($attendanceDates ?? [] as $date)
+                                    <option value="{{ $date }}">{{ date('F d, Y', strtotime($date)) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Records Table -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th rowspan="2" class="align-middle">Student Name</th>
+                                    <th colspan="2" class="text-center border-end">Morning Session</th>
+                                    <th colspan="2" class="text-center border-end">Afternoon Session</th>
+                                    <th rowspan="2" class="align-middle text-center">Status</th>
+                                    <th rowspan="2" class="align-middle text-center">Minutes Late</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-center">Time In</th>
+                                    <th class="text-center border-end">Time Out</th>
+                                    <th class="text-center">Time In</th>
+                                    <th class="text-center border-end">Time Out</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody">
+                                <!-- Data will be populated via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -924,7 +1005,84 @@
 
 
 
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseId = "{{ $course->id }}";
+        const batchId = "{{ $batch->id }}";
+        const dateSelect = document.getElementById('attendanceDateSelect');
+        const tableBody = document.getElementById('attendanceTableBody');
+        
+        dateSelect.addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (!selectedDate) return;
+            
+            // Fetch attendance data for selected date
+            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/${selectedDate}/records`)
+                .then(response => response.json())
+                .then(data => {
+                    updateAttendanceTable(data);
+                    updateSummary(data);
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        
+            function updateAttendanceTable(attendanceData) {
+                tableBody.innerHTML = '';
+                
+                attendanceData.sort((a, b) => a.lastName.localeCompare(b.lastName));
+                
+                attendanceData.forEach(record => {
+                    const row = document.createElement('tr');
+                    
+                    // Calculate morning status badge
+                    let morningStatusBadge = '';
+                    if (record.morningStatus === 'present') {
+                        morningStatusBadge = '<span class="badge bg-success">Present</span>';
+                    } else if (record.morningStatus === 'late') {
+                        morningStatusBadge = '<span class="badge bg-warning">Late</span>';
+                    } else {
+                        morningStatusBadge = '<span class="badge bg-danger">Absent</span>';
+                    }
 
+                    // Calculate afternoon status badge
+                    let afternoonStatusBadge = '';
+                    if (record.afternoonStatus === 'present') {
+                        afternoonStatusBadge = '<span class="badge bg-success">Present</span>';
+                    } else if (record.afternoonStatus === 'late') {
+                        afternoonStatusBadge = '<span class="badge bg-warning">Late</span>';
+                    } else {
+                        afternoonStatusBadge = '<span class="badge bg-danger">Absent</span>';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${record.lastName}, ${record.firstName} ${record.middleName ? record.middleName[0] + '.' : ''}</td>
+                        <td class="text-center">${record.morningTimeIn || '-'}</td>
+                        <td class="text-center border-end">${record.morningTimeOut || '-'}</td>
+                        <td class="text-center">${record.afternoonTimeIn || '-'}</td>
+                        <td class="text-center border-end">${record.afternoonTimeOut || '-'}</td>
+                        <td class="text-center">
+                            ${morningStatusBadge}<br>
+                            ${afternoonStatusBadge}
+                        </td>
+                        <td class="text-center">
+                            <span class="${record.morningLateMinutes > 0 ? 'text-danger' : ''}">${record.morningLateMinutes || '0'}</span><br>
+                            <span class="${record.afternoonLateMinutes > 0 ? 'text-danger' : ''}">${record.afternoonLateMinutes || '0'}</span>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+        
+        function updateSummary(data) {
+            document.getElementById('presentCount').textContent = data.filter(r => r.status === 'present').length;
+            document.getElementById('lateCount').textContent = data.filter(r => r.status === 'late').length;
+            document.getElementById('absentCount').textContent = data.filter(r => r.status === 'absent').length;
+        }
+    });
+    </script>
+    @endpush
 
     @push('scripts')
         <script>
@@ -1526,6 +1684,92 @@
                     showLateMinutes(row, afternoonLateMinutes, 'afternoon', afternoonStatus === 'LATE');
                 }
             }
+                            function isValidTimeFormat(time) {
+                    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                    return timeRegex.test(time);
+                }
+
+                function isTimeInRange(time, session) {
+                    if (!time || !isValidTimeFormat(time)) return false;
+                    
+                    const [hours] = time.split(':').map(Number);
+                    
+                    if (session === 'morning') {
+                        // Morning session: 12:00 AM to 11:59 AM
+                        return hours < 12;
+                    } else if (session === 'afternoon') {
+                        // Afternoon session: 12:00 PM to 11:59 PM
+                        return hours >= 12;
+                    }
+                    return false;
+                }
+
+                function convertTo24Hour(timeStr) {
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return (hours * 60) + minutes;
+                }
+
+                // Modified handleTimeInChange function
+                function handleTimeInChange(timeInInput, session) {
+                    const row = timeInInput.closest('tr');
+                    const studentId = timeInInput.dataset.studentId;
+                    const timeOutInput = row.querySelector(`input[name="students[${studentId}][${session}_time_out]"]`);
+                    
+                    // Clear previous error styling
+                    timeInInput.classList.remove('is-invalid');
+                    
+                    if (timeInInput.value) {
+                        // Validate time format
+                        if (!isValidTimeFormat(timeInInput.value)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid Time Format',
+                                text: 'Please enter time in HH:MM format (24-hour)'
+                            });
+                            timeInInput.value = '';
+                            timeOutInput.value = '';
+                            timeInInput.classList.add('is-invalid');
+                            return;
+                        }
+
+                        // Validate time range (AM/PM)
+                        if (!isTimeInRange(timeInInput.value, session)) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid Time Range',
+                                text: session === 'morning' ? 
+                                    'Morning time must be before 12:00 PM' : 
+                                    'Afternoon time must be after 12:00 PM'
+                            });
+                            timeInInput.value = '';
+                            timeOutInput.value = '';
+                            timeInInput.classList.add('is-invalid');
+                            return;
+                        }
+
+                        // Validate time in is not greater than time out
+                        const timeInMinutes = convertTo24Hour(timeInInput.value);
+                        const timeOutMinutes = convertTo24Hour(schedules[session].out);
+                        
+                        if (timeInMinutes >= timeOutMinutes) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid Time',
+                                text: 'Time in cannot be greater than or equal to time out'
+                            });
+                            timeInInput.value = '';
+                            timeOutInput.value = '';
+                            timeInInput.classList.add('is-invalid');
+                            return;
+                        }
+
+                        timeOutInput.value = schedules[session].out;
+                    } else {
+                        timeOutInput.value = '';
+                    }
+                    
+                    updateStatus(row);
+                }
             
     
             function calculateLateness(actualTime, scheduledTime) {

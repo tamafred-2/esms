@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class Course extends Model
 {
     use HasFactory, SoftDeletes;
-
+    protected $withCount = ['courseBatches'];
     protected $fillable = [
         'name',
         'description',
@@ -27,7 +27,6 @@ class Course extends Model
         'afternoon_schedule' => 'array'
     ];
 
-    // Main relationship for batches
     public function courseBatches()
     {
         return $this->hasMany(CourseBatch::class);
