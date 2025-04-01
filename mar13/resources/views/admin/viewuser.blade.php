@@ -49,9 +49,6 @@
                             <span class="badge bg-primary ms-2">Type: {{ ucfirst($selected_usertype) }}</span>
                         @endif
                     </div>
-                    <a href="{{ route('admin.users') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-x-circle"></i> Clear All Filters
-                    </a>
                 </div>
             </div>
         @endif
@@ -117,14 +114,40 @@
                                             <span class="text-muted">No address provided</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <span class="badge bg-{{ $user->usertype === 'admin' ? 'danger' : 'primary' }}">
+                                    <td style="text-align:left">
+                                        <span class="badge bg-{{ $user->usertype === 'admin' ? 'danger' : 'warning' }}" >
                                             {{ ucfirst($user->usertype) }}
                                         </span>
                                     </td>
                                     <td>{{ $user->created_at->format('M d, Y h:ia') }}</td>
                                     <td>
-                                        <!-- Your existing action buttons -->
+
+                                        <button type="button" 
+                                            class="btn btn-outline-danger btn-sm edit-user-btn" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editUserModal"
+                                            data-user-id="{{ $user->id }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" 
+                                            class="btn btn-outline-warning btn-sm view-user-btn" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#viewUserModal"
+                                            data-user-id="{{ $user->id }}">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+
+                                        <!-- <form method="POST" 
+                                            action="{{ route('admin.deleteuser', $user->id) }}" 
+                                            class="d-inline delete-form">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="btn btn-outline-danger btn-sm delete-btn"
+                                                    data-name="{{ $user->firstname }} {{ $user->lastname }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form> -->
                                     </td>
                                 </tr>
                             @empty
@@ -364,7 +387,217 @@
             </div>
         </div>
     </div>
+
+
+
+    <!-- View User Modal -->
+    <div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewUserModalLabel">User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-3 fw-bold">Name:</div>
+                                            <div class="col-md-9" id="view-name"></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-3 fw-bold">Email:</div>
+                                            <div class="col-md-9" id="view-email"></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-3 fw-bold">Contact Number:</div>
+                                            <div class="col-md-9" id="view-contact"></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-3 fw-bold">Address:</div>
+                                            <div class="col-md-9" id="view-address"></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-3 fw-bold">User Type:</div>
+                                            <div class="col-md-9">
+                                                <span class="badge bg-primary" id="view-usertype"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm" method="POST">
+                        @csrf
+                        @method('PUT')
+                        
+                        <!-- User Type Selection -->
+                        <div class="form-group mb-3">
+                            <label for="edit-usertype" class="form-label">User Type</label>
+                            <select class="form-select" id="edit-usertype" name="usertype" required>
+                                <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+    
+                        <!-- Name Fields -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="edit-lastname" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="edit-lastname" name="lastname" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="edit-firstname" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="edit-firstname" name="firstname" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="edit-middlename" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="edit-middlename" name="middlename">
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Contact Number -->
+                        <div class="form-group mb-3">
+                            <label for="edit-contact_number" class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" id="edit-contact_number" name="contact_number" required>
+                        </div>
+    
+                        <!-- Address Fields -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="edit-street_address" class="form-label">Street Address</label>
+                                    <input type="text" class="form-control" id="edit-street_address" name="street_address">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="edit-barangay" class="form-label">Barangay</label>
+                                    <input type="text" class="form-control" id="edit-barangay" name="barangay">
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="edit-municipality" class="form-label">Municipality/City</label>
+                                    <input type="text" class="form-control" id="edit-municipality" name="municipality">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="edit-province" class="form-label">Province</label>
+                                    <input type="text" class="form-control" id="edit-province" name="province">
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Email -->
+                        <div class="form-group mb-3">
+                            <label for="edit-email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="edit-email" name="email" required>
+                        </div>
+    
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Add event listener to all delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const userName = this.getAttribute('data-name');
+            const form = this.closest('form');
+            
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You want to delete ${userName}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Submit form with fetch
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: new FormData(form)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                // Reload page after successful deletion
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Error deleting user');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
+                }
+            });
+        });
+    });
+</script>
+    
+
+
     @push('scripts')
     <script>
         // Handle Create User Form Submission
@@ -479,7 +712,7 @@
         });
     </script>
     @endpush
-    
+        
     @push('scripts')
     <script>
         // Instant search and filter functionality
@@ -500,28 +733,6 @@
             searchForm.submit();
         });
 
-        // SweetAlert2 delete confirmation
-        document.querySelectorAll('.delete-user-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This action cannot be undone!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        this.submit();
-                    }
-                });
-            });
-        });
-
-        
     </script>
     @endpush
 </x-adminlayout>

@@ -59,6 +59,12 @@
                                             <span>View Users</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{{ route('admin.userlogs') }}">
+                                            <i class="bi bi-clock-history me-2"></i>
+                                            <span>Activity Logs</span>
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         </li>
@@ -77,9 +83,9 @@
                             <div class="collapse" id="monitoring">
                                 <ul class="nav flex-column ms-3 sub-nav">
                                     <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('admin.userlogs') }}">
+                                        <a class="nav-link" href="{{ route('admin.dailytime') }}">
                                             <i class="bi bi-clock-history me-2"></i>
-                                            <span>Activity Logs</span>
+                                            <span>Daily Time Sheets</span>
                                         </a>
                                     </li>
                                     <li class="nav-item">

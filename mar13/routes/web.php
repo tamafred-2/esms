@@ -43,13 +43,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Admin Routes Group
     Route::prefix('admin')->name('admin.')->group(function () {
         // User Management Routes
-        Route::get('/create-user', [DashboardController::class, 'createUser'])->name('createuser');
+        Route::delete('/users/{user}/delete', [DashboardController::class, 'deleteUser'])->name('deleteuser');
+        Route::get('/users/{user}/details', [DashboardController::class, 'getUserDetails'])->name('users.details');
         Route::post('/register-user', [DashboardController::class, 'registerUser'])->name('register-user');
         Route::get('/admin/users', [DashboardController::class, 'viewUsers'])->name('users');
         Route::put('/admin/users/{user}/update', [DashboardController::class, 'updateUser'])->name('updateuser');
         Route::delete('/admin/users/{user}/delete', [DashboardController::class, 'deleteUser'])->name('deleteuser');
         Route::get('/user-logs', [DashboardController::class, 'userlogs'])->name('userlogs');
         Route::get('/user-reports', [DashboardController::class, 'userreports'])->name('reports');
+        Route::get('/dailytime', [DashboardController::class, 'dailytime'])->name('dailytime');
         Route::get('/schools/{school}', [CourseController::class, 'show'])->name('show');
         // Students 
         Route::put('/students/{student}', [DashboardController::class, 'updateStudent'])->name('students.update');

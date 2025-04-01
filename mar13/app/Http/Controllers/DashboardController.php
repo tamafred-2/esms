@@ -24,28 +24,67 @@ use Illuminate\Validation\ValidationException;
 
 class DashboardController extends BaseController
 {
-
-public function storeEvent(Request $request)
-{
-    try {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'date' => 'required|date',
-            'time' => 'required',
-            'description' => 'nullable|string|max:1000',
+    public function dailytime()
+    {
+        // Get all course batches with relationships
+        $batches = DB::table('course_batches')
+            ->join('courses', 'course_batches.course_id', '=', 'courses.id')
+            ->join('schools', 'courses.school_id', '=', 'schools.id')  // Add this join
+            ->select(
+                'course_batches.id',
+                'course_batches.batch_name',
+                'course_batches.max_students',
+                'course_batches.status',
+                'course_batches.created_at',
+                'course_batches.start_date',
+                'course_batches.end_date',
+                'courses.name as course_name',
+                'schools.name as school_name'  // Add this field
+            )
+            ->orderBy('course_batches.created_at', 'desc');
+    
+        // Rest of your controller code remains the same
+        if (request('course')) {
+            $batches->where('course_batches.course_id', request('course'));
+        }
+    
+        $courses = DB::table('courses')->orderBy('name')->get();
+    
+        $enrolledCounts = DB::table('batch_enrollments')
+            ->select('batch_id', DB::raw('count(*) as enrolled_count'))
+            ->groupBy('batch_id')
+            ->pluck('enrolled_count', 'batch_id')
+            ->toArray();
+    
+        return view('admin.dailytime', [
+            'batches' => $batches->paginate(10),
+            'courses' => $courses,
+            'courseFilter' => request('course'),
+            'enrolledCounts' => $enrolledCounts
         ]);
-        $event = Event::create($validated);
-        return response()->json([
-            'success' => true,
-            'message' => 'Event created successfully!'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create event: ' . $e->getMessage()
-        ], 500);
     }
-}
+
+    public function storeEvent(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'date' => 'required|date',
+                'time' => 'required',
+                'description' => 'nullable|string|max:1000',
+            ]);
+            $event = Event::create($validated);
+            return response()->json([
+                'success' => true,
+                'message' => 'Event created successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create event: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function showLoginForm()
     {
@@ -206,30 +245,38 @@ public function storeEvent(Request $request)
     public function viewUsers(Request $request)
     {
         $query = User::query();
-    
+
         // Handle search
         if ($request->has('search')) {
             $searchTerm = $request->search;
             $query->where(function($q) use ($searchTerm) {
                 $q->where('firstname', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('lastname', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('email', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('contact_number', 'LIKE', "%{$searchTerm}%");
+                ->orWhere('lastname', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('email', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('contact_number', 'LIKE', "%{$searchTerm}%");
             });
         }
-    
+
         // Handle usertype filter
         if ($request->has('usertype') && $request->usertype != '') {
             $query->where('usertype', $request->usertype);
         }
-    
+
         // Handle sorting
         $sortField = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
-    
+
         $users = $query->paginate(5)->withQueryString();
-    
+
+        // If it's an AJAX request for user details
+        if ($request->ajax()) {
+            if ($request->has('userId')) {
+                $user = User::findOrFail($request->userId);
+                return response()->json($user);
+            }
+        }
+
         return view('admin.viewuser', [
             'users' => $users,
             'icon' => '<i class="bi bi-people-fill me-2"></i> View Users',
@@ -240,42 +287,46 @@ public function storeEvent(Request $request)
             'sort_direction' => $sortDirection
         ]);
     }
+    public function showUser(User $user)
+    {
+        return response()->json($user);
+    }
     
     public function updateUser(Request $request, User $user)
     {
+        $validated = $request->validate([
+            'usertype' => 'required|in:admin,staff,student',
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
+            'middlename' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'contact_number' => 'required|string|max:20',
+            'street_address' => 'nullable|string|max:255',
+            'barangay' => 'nullable|string|max:255',
+            'municipality' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+        ]);
+    
         try {
-            $validated = $request->validate([
-                'firstname' => ['required', 'string', 'max:255'],
-                'lastname' => ['required', 'string', 'max:255'],
-                'middlename' => ['nullable', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-                'contact_number' => ['required', 'string', 'max:20'],
-                'street_number' => ['required', 'string', 'max:255'],
-                'barangay' => ['required', 'string', 'max:255'],
-                'city' => ['required', 'string', 'max:255'],
-                'province' => ['required', 'string', 'max:255'],
-                'usertype' => ['required', 'in:admin,staff'],
-            ]);
-
             $user->update($validated);
-
-            return redirect()->route('admin.users')
-                           ->with('success', 'User updated successfully');
+            return redirect()->route('admin.users')->with('success', 'User updated successfully');
         } catch (\Exception $e) {
-            Log::error('User update failed: ' . $e->getMessage());
-            return back()->with('error', 'Failed to update user');
+            return redirect()->back()->with('error', 'Failed to update user');
         }
     }
-
     public function deleteUser(User $user)
     {
         try {
             $user->delete();
-            return redirect()->route('admin.users')
-                           ->with('success', 'User deleted successfully');
+            return response()->json([
+                'success' => true,
+                'message' => 'User deleted successfully'
+            ]);
         } catch (\Exception $e) {
-            Log::error('User deletion failed: ' . $e->getMessage());
-            return back()->with('error', 'Failed to delete user');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete user'
+            ], 500);
         }
     }
     
@@ -308,6 +359,7 @@ public function storeEvent(Request $request)
         // Your update logic here
         return redirect()->route('admin.profile.index')->with('success', 'Profile updated successfully');
     }
+
 
     // School Management Methods
     public function storeSchool(Request $request)
@@ -556,7 +608,33 @@ public function storeEvent(Request $request)
             ], 500);
         }
     }
-
+    public function getUserDetails(User $user)
+    {
+        try {
+            Log::info('Attempting to fetch user details', ['user_id' => $user->id]);
+            
+            $userData = User::findOrFail($user->id);
+            
+            Log::info('User details fetched successfully', ['user' => $userData]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $userData
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching user details', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch user details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
     public function showSchool(School $school)
     {
         // Load courses with their batch counts
