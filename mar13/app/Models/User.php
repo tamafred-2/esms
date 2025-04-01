@@ -77,7 +77,7 @@ class User extends Authenticatable
 
     public function school()
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     // Scopes for students
@@ -104,6 +104,14 @@ class User extends Authenticatable
         return $this->usertype === 'student';
     }
 
+    public function isStaff()
+    {
+        return $this->usertype === 'staff';
+    }
+    public function staff()
+    {
+        return $this->hasMany(Staff::class);
+    }
     public function isCompetent()
     {
         return $this->status === 'competent';

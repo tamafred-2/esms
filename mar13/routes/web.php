@@ -14,12 +14,16 @@ use Illuminate\Support\Facades\Auth;
 Route::get('/', function () {
     if (Auth::check()) {
         if (Auth::user()->usertype === 'admin') {
-            return redirect('admin.dashboard');
+            return redirect()->route('admin.dashboard');
+        } elseif (Auth::user()->usertype === 'staff') {
+            return redirect()->route('staff.dashboard');
         }
         Auth::logout();
     }
     return redirect('/login');
 });
+
+
 // Login routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [DashboardController::class, 'showLoginForm'])->name('login');
@@ -128,31 +132,35 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 
-
-
-// Staff routes
-Route::middleware(['auth', 'staff'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/staff/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
+    Route::get('/staff/profile', [StaffController::class, 'profile'])->name('staff.profile');
+    Route::get('/staff/school/{school}', [StaffController::class, 'show'])->name('staff.school.show');
+    Route::get('/staff/school/{school}/course/{course}/batches', [StaffController::class, 'showBatches'])
+    ->name('staff.school.batches.show');
+    Route::get('/staff/schools/{school}/courses/{course}/batches/{batch}/students', [StaffController::class, 'showBatchStudents'])
+    ->name('staff.school.batches.student.show');
+    // ... other staff routes
 });
-
-
-
-
-
-
 
 
 Route::post('/logout', [DashboardController::class, 'logout'])->name('logout');
 
 // Fallback route
 Route::fallback(function () {
-    return Auth::check() && Auth::user()->usertype === 'admin'
-        ? redirect()->route('admin.dashboard')->with('error', 'Page not found.')
-        : redirect()->route('login')->with('error', 'Page not found.');
-});
-
-
-
-Route::get('/test', function () {
-    return view('test');
+    if (Auth::check()) {
+        switch (Auth::user()->usertype) {
+            case 'admin':
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Page not found.');
+            case 'staff':
+                return redirect()->route('staff.dashboard')
+                    ->with('error', 'Page not found.');
+            default:
+                return redirect()->route('login')
+                    ->with('error', 'Page not found.');
+        }
+    }
+    return redirect()->route('login')
+        ->with('error', 'Page not found.');
 });

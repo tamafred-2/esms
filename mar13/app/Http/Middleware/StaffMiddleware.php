@@ -10,14 +10,19 @@ class StaffMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        // First check if user is authenticated
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
+        // Then check if user is staff
         if (Auth::user()->usertype !== 'staff') {
-            return redirect()->back()->with('error', 'Unauthorized access. Staff only.');
+            Auth::logout();
+            return redirect()->route('login')
+                ->with('error', 'Unauthorized access. Staff privileges required.');
         }
 
+        // If all checks pass, proceed
         return $next($request);
     }
 }

@@ -78,9 +78,11 @@ public function storeEvent(Request $request)
             
             // Redirect based on user type
             if ($user->usertype === 'staff') {
-                return redirect()->intended(route('staff.dashboard'))->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
+                return redirect()->intended(route('staff.dashboard'))
+                    ->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
             } elseif ($user->usertype === 'admin') {
-                return redirect()->intended(route('admin.dashboard'))->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
+                return redirect()->intended(route('admin.dashboard'))
+                    ->with('success', 'Welcome, ' . $user->firstname . ' ' . $user->lastname);
             }
             
             // If usertype is neither staff nor admin

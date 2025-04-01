@@ -25,6 +25,8 @@ class BatchEnrollment extends Model
         'updated_at'
     ];
 
+    
+
     // Relationships
     public function course()
     {

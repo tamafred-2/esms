@@ -33,13 +33,41 @@ class Staff extends Model
     {
         return $this->belongsTo(User::class);
     }
-
+    public function getFirstNameAttribute()
+    {
+        return $this->user->firstname;
+    }
     // Relationship with School
     public function school()
     {
         return $this->belongsTo(School::class);
     }
-
+    public function getLastNameAttribute()
+    {
+        return $this->user->lastname;
+    }
+    public function getCurrentPosition()
+    {
+        return [
+            'position' => $this->position,
+            'department' => $this->department,
+            'school' => $this->school->name ?? 'Not Assigned',
+            'status' => $this->employment_status
+        ];
+    }
+    public function getFormattedDateHiredAttribute()
+    {
+        return $this->date_hired ? $this->date_hired->format('F d, Y') : 'Not set';
+    }
+    public function getEmploymentDurationAttribute()
+    {
+        if (!$this->date_hired) return 'Not available';
+        return $this->date_hired->diffForHumans(null, true);
+    }
+    public function getStatusTextAttribute()
+    {
+        return $this->is_active ? 'Active' : 'Inactive';
+    }
     // Scope for active staff
     public function scopeActive($query)
     {
