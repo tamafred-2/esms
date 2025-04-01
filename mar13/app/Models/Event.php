@@ -24,6 +24,11 @@ class Event extends Model
         'updated_at' => 'datetime'
     ];
 
+    public function setTitleAttribute($value)
+    {
+        $this->attributes['title'] = ucfirst($value);
+    }
+
         public function getFormattedTimeAttribute()
     {
         return $this->time ? Carbon::parse($this->time)->format('h:i A') : null;

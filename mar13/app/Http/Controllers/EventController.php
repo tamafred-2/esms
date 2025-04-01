@@ -26,9 +26,7 @@ class EventController extends Controller
         return view('admin.events.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -37,16 +35,17 @@ class EventController extends Controller
             'time' => 'required',
             'description' => 'nullable|string'
         ]);
-
+    
+        // Capitalize the first letter of each word in the title
+        $validated['title'] = ucwords(strtolower($validated['title']));
+    
         Event::create($validated);
-
+    
         return redirect()->back()
                         ->with('success', 'Event created successfully');
     }
 
-    /**
-     * Display the specified resource.
-     */
+
     public function show(string $id)
     {
         $event = Event::findOrFail($id);
@@ -85,12 +84,13 @@ class EventController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroyEvent(Event $event)
     {
-        $event = Event::findOrFail($id);
-        $event->delete();
-
-        return redirect()->back()
-                        ->with('success', 'Event deleted successfully');
+        try {
+            $event->delete();
+            return redirect()->back()->with('success', 'Event deleted successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to delete event');
+        }
     }
 }

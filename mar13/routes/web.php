@@ -7,6 +7,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\SectorController;
+use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Auth;
 
 
@@ -71,7 +72,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/create', [DashboardController::class, 'createEvent'])->name('create');
             Route::get('/{event}/edit', [DashboardController::class, 'editEvent'])->name('edit');
             Route::put('/{event}', [DashboardController::class, 'updateEvent'])->name('update');
-            Route::delete('/{event}', [DashboardController::class, 'destroyEvent'])->name('destroy');
+            Route::delete('/{event}', [EventController::class, 'destroyEvent'])->name('destroy');
         });
 
         // Profile Routes

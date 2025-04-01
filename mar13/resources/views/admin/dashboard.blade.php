@@ -7,9 +7,20 @@
         @endif
 
         @if(session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: "{{ session('success') }}", // Changed to double quotes
+                        icon: 'success',
+                        timer: 5000,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                });
+            </script>
         @endif
         <div class="row justify-content-center">
             <!-- Events Section -->
@@ -45,12 +56,11 @@
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <form action="{{ route('admin.events.destroy', $event->id) }}" 
-                                              method="POST"
-                                              class="d-inline m-0"
-                                              onsubmit="return confirm('Are you sure you want to delete this event?');">
+                                            method="POST"
+                                            class="d-inline m-0 delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger">
+                                            <button type="button" class="btn btn-outline-danger delete-btn">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
@@ -570,7 +580,68 @@
         border-bottom-right-radius: 0.25rem;
     }
     </style>
-    
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    
+                    Swal.fire({
+                        title: 'Delete Event?',
+                        text: "You won't be able to revert this!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete it!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        customClass: {
+                            confirmButton: 'btn btn-danger',
+                            cancelButton: 'btn btn-secondary me-3'
+                        },
+                        buttonsStyling: false,
+                        padding: '2em'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Disable any default form submission behavior
+                            form.addEventListener('submit', (e) => {
+                                e.preventDefault();
+                            }, { once: true });
+                            
+                            // Submit form using fetch
+                            fetch(form.action, {
+                                method: 'POST',
+                                body: new FormData(form),
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            }).then(() => {
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: 'Event has been deleted.',
+                                    icon: 'success',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the page after the success message
+                                    window.location.reload();
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+    @endpush
+
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
