@@ -224,17 +224,16 @@ public function storeEvent(Request $request)
         }
     
         // Handle sorting
-        $sortField = $request->get('sort', 'created_at'); // default sort by created_at
-        $sortDirection = $request->get('direction', 'desc'); // default direction is descending
-    
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
     
-        $users = $query->paginate(8)->withQueryString();
+        $users = $query->paginate(5)->withQueryString();
     
         return view('admin.viewuser', [
             'users' => $users,
-            'icon' => 'bi bi-people-fill',
-            'button' => 'View Users',
+            'icon' => '<i class="bi bi-people-fill me-2"></i> View Users',
+            'button' => '<button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createUserModal"><i class="bi bi-person-plus-fill me-2"></i>Create User</button>',
             'selected_usertype' => $request->usertype,
             'search_term' => $request->search,
             'sort_field' => $sortField,

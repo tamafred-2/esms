@@ -4,6 +4,13 @@
         <div class="card mb-4">
             <div class="card-body">
                 <form class="row g-3" method="GET" action="{{ route('admin.users') }}" id="searchForm">
+                    <div class="col-md-4">
+                        <select class="form-select" name="usertype" id="userTypeFilter">
+                            <option value="">All User Types</option>
+                            <option value="admin" {{ (isset($selected_usertype) && $selected_usertype == 'admin') ? 'selected' : '' }}>Admin</option>
+                            <option value="staff" {{ (isset($selected_usertype) && $selected_usertype == 'staff') ? 'selected' : '' }}>Staff</option>
+                        </select>
+                    </div>
                     <div class="col-md-6">
                         <div class="input-group">
                             <span class="input-group-text">
@@ -16,18 +23,8 @@
                                    value="{{ $search_term ?? '' }}">
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <select class="form-select" name="usertype" id="userTypeFilter">
-                            <option value="">All User Types</option>
-                            <option value="admin" {{ (isset($selected_usertype) && $selected_usertype == 'admin') ? 'selected' : '' }}>Admin</option>
-                            <option value="staff" {{ (isset($selected_usertype) && $selected_usertype == 'staff') ? 'selected' : '' }}>Staff</option>
-                        </select>
-                    </div>
                     <div class="col-md-2">
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-search"></i> Search
-                            </button>
                             @if($search_term || $selected_usertype)
                                 <a href="{{ route('admin.users') }}" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Clear
@@ -150,6 +147,282 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl"> <!-- Changed to modal-xl for larger width -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createUserModalLabel">Create New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container">
+                        <div class="card">
+                            <div class="card-body">
+                                <form action="{{ route('admin.register-user') }}" method="POST" id="createUserForm">
+                                    @csrf
+                                    
+                                    <!-- User Type Selection -->
+                                    <div class="form-group mb-3">
+                                        <label for="usertype" class="form-label">User Type</label>
+                                        <select class="form-select @error('usertype') is-invalid @enderror" 
+                                                id="usertype" 
+                                                name="usertype" 
+                                                required>
+                                            <option value="" selected disabled>Select User Type</option>
+                                            <option value="admin" {{ old('usertype') == 'admin' ? 'selected' : '' }}>Admin</option>
+                                            <option value="staff" {{ old('usertype') == 'staff' ? 'selected' : '' }}>Staff</option>
+                                        </select>
+                                        @error('usertype')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+    
+                                    <!-- Name Fields -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="lastname" class="form-label">Last Name</label>
+                                                <input type="text" 
+                                                       class="form-control @error('lastname') is-invalid @enderror"
+                                                       id="lastname" 
+                                                       name="lastname" 
+                                                       value="{{ old('lastname') }}" 
+                                                       required>
+                                                @error('lastname')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="firstname" class="form-label">First Name</label>
+                                                <input type="text" 
+                                                       class="form-control @error('firstname') is-invalid @enderror"
+                                                       id="firstname" 
+                                                       name="firstname" 
+                                                       value="{{ old('firstname') }}" 
+                                                       required>
+                                                @error('firstname')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="middlename" class="form-label">Middle Name/Initial</label>
+                                                <input type="text" 
+                                                       class="form-control @error('middlename') is-invalid @enderror"
+                                                       id="middlename" 
+                                                       name="middlename" 
+                                                       value="{{ old('middlename') }}">
+                                                @error('middlename')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    <!-- Contact Number -->
+                                    <div class="form-group mb-3">
+                                        <label for="contact_number" class="form-label">Contact Number</label>
+                                        <input type="tel" 
+                                               class="form-control @error('contact_number') is-invalid @enderror"
+                                               id="contact_number" 
+                                               name="contact_number" 
+                                               value="{{ old('contact_number') }}" 
+                                               required>
+                                        @error('contact_number')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+    
+                                    <!-- Address Fields -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="street_number" class="form-label">Street Number</label>
+                                                <input type="text" 
+                                                       class="form-control @error('street_number') is-invalid @enderror"
+                                                       id="street_number" 
+                                                       name="street_number" 
+                                                       value="{{ old('street_number') }}" 
+                                                       required>
+                                                @error('street_number')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="barangay" class="form-label">Barangay</label>
+                                                <input type="text" 
+                                                       class="form-control @error('barangay') is-invalid @enderror"
+                                                       id="barangay" 
+                                                       name="barangay" 
+                                                       value="{{ old('barangay') }}" 
+                                                       required>
+                                                @error('barangay')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="city" class="form-label">Municipality/City</label>
+                                                <input type="text" 
+                                                       class="form-control @error('city') is-invalid @enderror"
+                                                       id="city" 
+                                                       name="city" 
+                                                       value="{{ old('city') }}" 
+                                                       required>
+                                                @error('city')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="province" class="form-label">Province</label>
+                                                <input type="text" 
+                                                       class="form-control @error('province') is-invalid @enderror"
+                                                       id="province" 
+                                                       name="province" 
+                                                       value="{{ old('province') }}" 
+                                                       required>
+                                                @error('province')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    <!-- Email -->
+                                    <div class="form-group mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" 
+                                               class="form-control @error('email') is-invalid @enderror"
+                                               id="email" 
+                                               name="email" 
+                                               value="{{ old('email') }}" 
+                                               required>
+                                        @error('email')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+    
+                                    <!-- Password -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="password" class="form-label">Password</label>
+                                                <input type="password" 
+                                                       class="form-control @error('password') is-invalid @enderror"
+                                                       id="password" 
+                                                       name="password" 
+                                                       required>
+                                                @error('password')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="password_confirmation" class="form-label">Confirm Password</label>
+                                                <input type="password" 
+                                                       class="form-control"
+                                                       id="password_confirmation" 
+                                                       name="password_confirmation" 
+                                                       required>
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    <!-- Submit Button -->
+                                    <div class="mt-3 text-end">
+                                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                                            <i class="bi bi-person-plus-fill me-2"></i>Create User
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @push('scripts')
+    <script>
+        // Handle Create User Form Submission
+        document.getElementById('createUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+    
+            // Submit form using fetch
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'User created successfully',
+                        icon: 'success',
+                        confirmButtonColor: '#0d6efd'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Reload the page to show new user
+                            window.location.reload();
+                        }
+                    });
+    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+                    modal.hide();
+                } else {
+                    // Show error message
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Something went wrong',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Something went wrong',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
+        });
+    
+        // Reset form when modal is closed
+        document.getElementById('createUserModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('createUserForm').reset();
+        });
+    </script>
+    @endpush
+    
 
     <!-- Keep your existing modals here -->
 

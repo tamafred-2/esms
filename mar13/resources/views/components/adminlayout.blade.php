@@ -54,12 +54,6 @@
                             <div class="collapse" id="userManagement">
                                 <ul class="nav flex-column ms-3 sub-nav">
                                     <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('admin.createuser') }}">
-                                            <i class="bi bi-person-plus me-2"></i>
-                                            <span>Create User</span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
                                         <a class="nav-link" href="{{ route('admin.users') }}">
                                             <i class="bi bi-person-lines-fill me-2"></i>
                                             <span>View Users</span>

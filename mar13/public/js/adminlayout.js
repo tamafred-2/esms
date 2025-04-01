@@ -559,59 +559,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-    // Form submission handling
-    const form = document.getElementById('createUserForm');
-    const submitBtn = document.getElementById('submitBtn');
-
-    if (form && submitBtn) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            submitBtn.disabled = true;
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: new FormData(this),
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: data.message,
-                        showConfirmButton: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            this.reset();
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: data.message || 'Something went wrong!',
-                        showConfirmButton: true
-                    });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Something went wrong!',
-                    showConfirmButton: true
-                });
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-            });
-        });
-    }
-
 
     document.addEventListener('DOMContentLoaded', function() {
         // Delete Course Sweet Alert
