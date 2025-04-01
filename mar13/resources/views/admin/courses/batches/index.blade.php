@@ -152,7 +152,7 @@
                                 <!-- Batch Header -->
                                 <div class="d-flex justify-content-between align-items-start mb-3 batch-item" data-course-id="{{ $course->id }}">
                                     <div>
-                                         <h5 class="card-title mb-1">{{ $batch->batch_name }}</h5>
+                                         <h5 class="card-title mb-1" style="margin-left: 15px;">{{ $batch->batch_name }}</h5>
                                          @php
                                              $now = \Carbon\Carbon::now();
                                              $status = 'pending';
@@ -200,9 +200,13 @@
                                 <!-- Dates Section -->
                                 <div class="mb-3">
                                     <div class="d-flex align-items-center mb-2">
-                                        <i class="bi bi-calendar-event text-primary me-2"></i>
+                                        <i class="bi bi-calendar-event text-primary me-2" style="margin-left: 5%"></i>
                                         <small>
                                             Start: <strong>{{ $batch->start_date->format('M d, Y') }}</strong>
+                                        </small>
+                                        <i class="bi bi-calendar-check text-primary me-2" style="margin-left: 5%"></i>
+                                        <small>
+                                            End: <strong>{{ $batch->end_date->format('M d, Y') }}</strong>
                                         </small>
                                     </div>
                                 </div>

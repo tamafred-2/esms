@@ -768,54 +768,69 @@
 
     @push('styles')
     <style>
+        /* Modal Styles */
         #editAttendanceModal .modal-content {
             border-radius: 0.5rem;
         }
-
+    
         #editAttendanceModal .modal-header {
             background-color: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
         }
-
-        #editAttendanceModal .border-bottom {
-            border-bottom: 1px solid #dee2e6 !important;
+    
+        /* Time Input Styles */
+        .time-input {
+            width: 130px;
+            padding: 0.375rem 0.75rem;
+        }
+    
+        input[type="time"]:read-only {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+    
+        .time-input.is-invalid {
+            border-color: #dc3545;
+        }
+    
+        /* Session Headers */
+        .text-muted.mb-2 {
+            font-size: 0.9rem;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem !important;
+        }
+    
+        /* Form Layout */
+        .row.g-3 {
             margin-bottom: 1rem;
         }
-
-        #editAttendanceModal .form-label {
+    
+        .form-label {
             font-size: 0.875rem;
             font-weight: 500;
             color: #6c757d;
         }
-
-        #editAttendanceModal .alert-info {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
-            color: #6c757d;
+    
+        /* Validation Styles */
+        .is-invalid {
+            border-color: #dc3545;
         }
-
-        #editAttendanceModal .form-control:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
         }
-
-        #editAttendanceModal .btn-primary {
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
-        }
-
-        #editAttendanceModal .modal-footer {
-            border-top: 1px solid #dee2e6;
-            background-color: #f8f9fa;
-        }
-
-        @media (max-width: 576px) {
-            #editAttendanceModal .modal-dialog {
-                margin: 0.5rem;
-            }
+    
+        .is-invalid ~ .invalid-feedback {
+            display: block;
         }
     </style>
     @endpush
+    
     @push('styles')
     <style>
         .section-header {
@@ -1188,212 +1203,122 @@
     }
 </style>
 @endpush
+@push('styles')
+<style>
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    
+    input[type="time"]:read-only {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
 
-
-@push('scripts')
-<script>
-    // Add this to your existing JavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get schedule times from your backend (you'll need to pass these from PHP)
-        const schedules = {
-            morning: {
-                start: '08:00',
-                end: '12:00'
-            },
-            afternoon: {
-                start: '13:00',
-                end: '17:00'
-            }
-        };
-    
-        // Validation function for time inputs
-        function validateTimeInput(timeIn, timeOut, session) {
-            const errors = {};
-            
-            // If one field is filled, both should be filled
-            if ((timeIn && !timeOut) || (!timeIn && timeOut)) {
-                errors[`${session}_time_in`] = `Both ${session} time in and time out are required`;
-                errors[`${session}_time_out`] = `Both ${session} time in and time out are required`;
-                return errors;
-            }
-    
-            // If both fields are empty, it's valid (marked as absent)
-            if (!timeIn && !timeOut) {
-                return errors;
-            }
-    
-            // Convert times to comparable values
-            const timeInValue = timeIn;
-            const timeOutValue = timeOut;
-            const sessionStart = schedules[session].start;
-            const sessionEnd = schedules[session].end;
-    
-            // Validate time in is within session hours
-            if (timeInValue < sessionStart) {
-                errors[`${session}_time_in`] = `Time in cannot be before ${sessionStart}`;
-            }
-    
-            // Validate time out is within session hours
-            if (timeOutValue > sessionEnd) {
-                errors[`${session}_time_out`] = `Time out cannot be after ${sessionEnd}`;
-            }
-    
-            // Validate time out is after time in
-            if (timeInValue >= timeOutValue) {
-                errors[`${session}_time_out`] = 'Time out must be after time in';
-            }
-    
-            return errors;
-        }
-    
-        // Function to show validation errors
-        function showValidationErrors(errors) {
-            // Reset all fields first
-            document.querySelectorAll('#editAttendanceForm .is-invalid').forEach(field => {
-                field.classList.remove('is-invalid');
-            });
-    
-            // Show new errors
-            Object.keys(errors).forEach(fieldName => {
-                const field = document.querySelector(`#editAttendanceForm [name="${fieldName}"]`);
-                if (field) {
-                    field.classList.add('is-invalid');
-                    field.nextElementSibling.textContent = errors[fieldName];
-                }
-            });
-        }
-    
-        // Handle save changes
-        document.getElementById('saveAttendanceChanges').addEventListener('click', function(e) {
-            e.preventDefault();
-        
-            // Get form values
-            const morningTimeIn = document.getElementById('editMorningTimeIn').value;
-            const morningTimeOut = document.getElementById('editMorningTimeOut').value;
-            const afternoonTimeIn = document.getElementById('editAfternoonTimeIn').value;
-            const afternoonTimeOut = document.getElementById('editAfternoonTimeOut').value;
-            const studentId = document.getElementById('editStudentId').value;
-            const attendanceDate = document.getElementById('editDate').value;
-        
-            // Validate both sessions
-            const morningErrors = validateTimeInput(morningTimeIn, morningTimeOut, 'morning');
-            const afternoonErrors = validateTimeInput(afternoonTimeIn, afternoonTimeOut, 'afternoon');
-        
-            // Combine all errors
-            const errors = { ...morningErrors, ...afternoonErrors };
-        
-            // If there are errors, show them and stop
-            if (Object.keys(errors).length > 0) {
-                showValidationErrors(errors);
-                return;
-            }
-        
-            // If validation passes, proceed with saving
-            const formData = new FormData();
-            formData.append('student_id', studentId);
-            formData.append('attendance_date', attendanceDate);
-            formData.append('morning_time_in', morningTimeIn);
-            formData.append('morning_time_out', morningTimeOut);
-            formData.append('afternoon_time_in', afternoonTimeIn);
-            formData.append('afternoon_time_out', afternoonTimeOut);
-        
-            const button = this;
-        
-            // Disable button and show loading state
-            button.disabled = true;
-            const originalText = button.innerHTML;
-            button.innerHTML = `
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Saving...
-            `;
-        
-            // Send update request
-            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/update`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => {
-                        throw new Error(err.message || `HTTP error! status: ${response.status}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Show success message
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Attendance record updated successfully',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-        
-                    // Close edit modal
-                    bootstrap.Modal.getInstance(document.getElementById('editAttendanceModal')).hide();
-        
-                    // Refresh the attendance table
-                    document.getElementById('attendanceDateSelect').dispatchEvent(new Event('change'));
-                } else {
-                    throw new Error(data.message || 'Failed to update attendance');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: error.message || 'Failed to update attendance record'
-                });
-            })
-            .finally(() => {
-                // Restore button state
-                button.disabled = false;
-                button.innerHTML = originalText;
-            });
-        });
-        
-    
-        // Add input event listeners for real-time validation
-        const timeInputs = document.querySelectorAll('#editAttendanceForm input[type="time"]');
-        timeInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                const session = this.name.includes('morning') ? 'morning' : 'afternoon';
-                const timeIn = document.querySelector(`[name="${session}_time_in"]`).value;
-                const timeOut = document.querySelector(`[name="${session}_time_out"]`).value;
-                
-                const errors = validateTimeInput(timeIn, timeOut, session);
-                showValidationErrors(errors);
-            });
-        });
-    });
-    
-</script>
+    .time-input.is-invalid {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+</style>
 @endpush
 
-@push('scripts')
-<script>
+@push('styles')
+<style>
+    /* ... your existing styles ... */
+
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    input[type="time"].text-warning {
+        color: #ffc107;
+        font-weight: bold;
+    }
+
+    .late-minutes {
+        font-weight: bold;
+    }
+</style>
+@endpush
+
+    
+    @push('scripts')
+    <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize constants
         const attendanceDateSelect = document.getElementById('attendanceDateSelect');
         const attendanceTableBody = document.getElementById('attendanceTableBody');
         const courseId = document.querySelector('meta[name="course-id"]').content;
         const batchId = document.querySelector('meta[name="batch-id"]').content;
-    
-        // Initialize the edit modal
         const editModal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
     
-        // Function to populate table row
+        // Initialize schedules
+        const schedules = {
+            morning: {
+                in: "{{ $schedules['morning']['in'] }}",
+                out: "{{ $schedules['morning']['out'] }}"
+            },
+            afternoon: {
+                in: "{{ $schedules['afternoon']['in'] }}",
+                out: "{{ $schedules['afternoon']['out'] }}"
+            }
+        };
+        // Helper functions for validation and error handling
+        function validateTime(timeIn, session) {
+            if (!timeIn) return { isValid: true, message: '' };
+    
+            const timeInHours = parseInt(timeIn.split(':')[0]);
+            const timeInMinutes = parseInt(timeIn.split(':')[1]);
+            const totalMinutes = (timeInHours * 60) + timeInMinutes;
+    
+            if (session === 'morning') {
+                // Morning validation (before 12:00 PM)
+                if (timeInHours >= 12) {
+                    return {
+                        isValid: false,
+                        message: 'Morning time must be before 12:00 PM'
+                    };
+                }
+                
+                const [outHours, outMinutes] = schedules.morning.out.split(':');
+                const scheduleOutMinutes = (parseInt(outHours) * 60) + parseInt(outMinutes);
+                
+                if (totalMinutes >= scheduleOutMinutes) {
+                    return {
+                        isValid: false,
+                        message: 'Time in cannot be later than or equal to time out'
+                    };
+                }
+            } else {
+                // Afternoon validation (after or at 12:00 PM)
+                if (timeInHours < 12) {
+                    return {
+                        isValid: false,
+                        message: 'Afternoon time must be after 12:00 PM'
+                    };
+                }
+                
+                const [outHours, outMinutes] = schedules.afternoon.out.split(':');
+                const scheduleOutMinutes = (parseInt(outHours) * 60) + parseInt(outMinutes);
+                
+                if (totalMinutes >= scheduleOutMinutes) {
+                    return {
+                        isValid: false,
+                        message: 'Time in cannot be later than or equal to time out'
+                    };
+                }
+            }
+    
+            return { isValid: true, message: '' };
+        }
+        
+        // Function to create attendance row HTML
         function createAttendanceRow(record) {
             // Function to get status with text color
             function getStatusWithColor(status) {
                 let colorClass;
-                switch (status.toLowerCase()) {
+                switch (status?.toLowerCase()) {
                     case 'present':
                         colorClass = 'text-success';
                         break;
@@ -1406,9 +1331,9 @@
                     default:
                         colorClass = 'text-secondary';
                 }
-                return `<span class="${colorClass}">${status.toUpperCase()}</span>`;
+                return `<span class="${colorClass}">${status ? status.toUpperCase() : 'N/A'}</span>`;
             }
-        
+    
             return `
                 <tr data-student-id="${record.student_id}">
                     <td class="align-middle">
@@ -1471,31 +1396,323 @@
                 </tr>
             `;
         }
-        
-        
-        // Function to determine status display
-        function getStatusDisplay(record) {
-            let morningPresent = record.morning_time_in && record.morning_time_out;
-            let afternoonPresent = record.afternoon_time_in && record.afternoon_time_out;
     
-            if (morningPresent && afternoonPresent) {
-                return 'PRESENT';
-            } else if (morningPresent || afternoonPresent) {
-                return 'HALF DAY';
-            } else if (record.morning_time_in || record.afternoon_time_in) {
-                return 'INCOMPLETE';
-            }
-            return 'ABSENT';
+
+        function showError(input, message) {
+            removeError(input);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = message;
+            input.parentNode.appendChild(errorDiv);
+            input.classList.add('is-invalid');
         }
     
-        // Handle date selection change
-        attendanceDateSelect.addEventListener('change', function() {
-            const selectedDate = this.value;
-            if (!selectedDate) {
-                attendanceTableBody.innerHTML = '';
-                return;
+        function removeError(input) {
+            const existingError = input.nextElementSibling;
+            if (existingError && existingError.classList.contains('invalid-feedback')) {
+                existingError.remove();
             }
+            input.classList.remove('is-invalid');
+        }
+        // Edit button click handler
+        document.addEventListener('click', function(e) {
+            const editButton = e.target.closest('.edit-attendance');
+            if (editButton) {
+                e.preventDefault();
+                
+                // Get data from button attributes
+                const studentId = editButton.dataset.studentId;
+                const studentName = editButton.dataset.studentName;
+                const morningIn = editButton.dataset.morningIn;
+                const afternoonIn = editButton.dataset.afternoonIn;
+                
+                // Set form values
+                document.getElementById('editStudentId').value = studentId;
+                document.getElementById('editDate').value = attendanceDateSelect.value;
+                
+                // Get time input elements
+                const morningTimeIn = document.getElementById('editMorningTimeIn');
+                const morningTimeOut = document.getElementById('editMorningTimeOut');
+                const afternoonTimeIn = document.getElementById('editAfternoonTimeIn');
+                const afternoonTimeOut = document.getElementById('editAfternoonTimeOut');
+                
+                // Set initial values
+                morningTimeIn.value = morningIn;
+                afternoonTimeIn.value = afternoonIn;
+    
+                // Add event listeners for morning time in
+                morningTimeIn.addEventListener('change', function() {
+                    const validation = validateTime(this.value, 'morning');
+                    if (validation.isValid) {
+                        removeError(this);
+                        morningTimeOut.value = schedules.morning.out;
+                    } else {
+                        showError(this, validation.message);
+                        this.value = ''; // Clear invalid input
+                        morningTimeOut.value = schedules.morning.out; // Keep scheduled time out
+                    }
+                });
+    
+                // Add event listeners for afternoon time in
+                afternoonTimeIn.addEventListener('change', function() {
+                    const validation = validateTime(this.value, 'afternoon');
+                    if (validation.isValid) {
+                        removeError(this);
+                        afternoonTimeOut.value = schedules.afternoon.out;
+                    } else {
+                        showError(this, validation.message);
+                        this.value = ''; // Clear invalid input
+                        afternoonTimeOut.value = schedules.afternoon.out; // Keep scheduled time out
+                    }
+                });
+    
+                // Set initial time out values if time in exists and is valid
+                if (morningIn) {
+                    const validation = validateTime(morningIn, 'morning');
+                    if (validation.isValid) {
+                        morningTimeOut.value = schedules.morning.out;
+                    }
+                }
+                if (afternoonIn) {
+                    const validation = validateTime(afternoonIn, 'afternoon');
+                    if (validation.isValid) {
+                        afternoonTimeOut.value = schedules.afternoon.out;
+                    }
+                }
+    
+                // Make time out fields readonly
+                morningTimeOut.readOnly = true;
+                afternoonTimeOut.readOnly = true;
+                
+                // Update modal title
+                document.getElementById('editAttendanceModalLabel').textContent = 
+                    `Edit Attendance - ${studentName}`;
+                
+                editModal.show();
+            }
+        });
+        // Handle form submission
+        document.getElementById('saveAttendanceChanges').addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = document.getElementById('editAttendanceForm');
+            const formData = new FormData(form);
+            const button = this;
+    
+            // Disable button and show loading state
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = `
 
+                Save Changes
+            `;
+    
+            // Send update request
+            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Stop loading state immediately
+                button.disabled = false;
+                button.innerHTML = originalText;
+    
+                if (data.success) {
+                    // Close modal immediately
+                    editModal.hide();
+                    
+                    // Show success message
+                    return Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Attendance record updated successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to update attendance');
+                }
+            })
+            .then(() => {
+                // Refresh table after success message closes
+                return refreshAttendanceTable();
+            })
+            .catch(error => {
+                // Ensure button is restored on error
+                button.disabled = false;
+                button.innerHTML = originalText;
+    
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Failed to update attendance record'
+                });
+            });
+        });
+        // Reset form when modal is hidden
+        document.getElementById('editAttendanceModal').addEventListener('hidden.bs.modal', function () {
+            const form = document.getElementById('editAttendanceForm');
+            form.reset();
+            
+            // Remove any error messages
+            const errorMessages = form.querySelectorAll('.invalid-feedback');
+            errorMessages.forEach(error => error.remove());
+            
+            // Remove invalid classes from inputs
+            const invalidInputs = form.querySelectorAll('.is-invalid');
+            invalidInputs.forEach(input => input.classList.remove('is-invalid'));
+    
+            // Clear time out fields
+            document.getElementById('editMorningTimeOut').value = '';
+            document.getElementById('editAfternoonTimeOut').value = '';
+        });
+    
+        // Prevent modal from closing when clicking outside
+        document.getElementById('editAttendanceModal').addEventListener('show.bs.modal', function (event) {
+            event.stopPropagation();
+        });
+
+        // Function to calculate late minutes and status
+        function calculateAttendanceStatus(timeIn, scheduledTime) {
+            if (!timeIn || !scheduledTime) return { status: 'absent', lateMinutes: 0 };
+        
+            const timeInDate = new Date(`2000-01-01T${timeIn}`);
+            const scheduledDate = new Date(`2000-01-01T${scheduledTime}`);
+            
+            // Calculate difference in minutes
+            const diffInMinutes = Math.floor((timeInDate - scheduledDate) / (1000 * 60));
+            
+            // If time in is before or equal to scheduled time
+            if (diffInMinutes <= 0) {
+                return { status: 'present', lateMinutes: 0 };
+            }
+            // If time in is more than 15 minutes late
+            else if (diffInMinutes > 15) {
+                return { status: 'late', lateMinutes: diffInMinutes };
+            }
+            // If time in is within 15 minutes grace period
+            else {
+                // Still present but show late minutes
+                return { status: 'present', lateMinutes: diffInMinutes };
+            }
+        }
+        
+        // Modified createAttendanceRow function
+        function createAttendanceRow(record) {
+            // Function to get status with text color
+            function getStatusWithColor(status) {
+                let colorClass;
+                switch (status?.toLowerCase()) {
+                    case 'present':
+                        colorClass = 'text-success';
+                        break;
+                    case 'late':
+                        colorClass = 'text-warning';
+                        break;
+                    case 'absent':
+                        colorClass = 'text-danger';
+                        break;
+                    default:
+                        colorClass = 'text-secondary';
+                }
+                return `<span class="${colorClass}">${status ? status.toUpperCase() : 'N/A'}</span>`;
+            }
+        
+            // Calculate morning status
+            const morningAttendance = calculateAttendanceStatus(
+                record.morning_time_in, 
+                schedules.morning.in
+            );
+        
+            // Calculate afternoon status
+            const afternoonAttendance = calculateAttendanceStatus(
+                record.afternoon_time_in, 
+                schedules.afternoon.in
+            );
+        
+            // Calculate total late minutes
+            const totalLateMinutes = morningAttendance.lateMinutes + afternoonAttendance.lateMinutes;
+        
+            return `
+                <tr data-student-id="${record.student_id}">
+                    <td class="align-middle">
+                        ${record.student_name}
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm time-input ${morningAttendance.lateMinutes > 0 ? 'text-warning' : ''}"
+                            value="${record.morning_time_in || ''}"
+                            readonly>
+                    </td>
+                    <td class="border-end">
+                        <input type="time" 
+                            class="form-control form-control-sm"
+                            value="${record.morning_time_out || ''}"
+                            readonly>
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm time-input ${afternoonAttendance.lateMinutes > 0 ? 'text-warning' : ''}"
+                            value="${record.afternoon_time_in || ''}"
+                            readonly>
+                    </td>
+                    <td>
+                        <input type="time" 
+                            class="form-control form-control-sm"
+                            value="${record.afternoon_time_out || ''}"
+                            readonly>
+                    </td>
+                    <td class="text-center align-middle">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <span class="small fw-bold">AM:</span> 
+                            <span class="ms-1">${getStatusWithColor(morningAttendance.status)}</span>
+                            <span class="mx-1">|</span>
+                            <span class="small fw-bold">PM:</span> 
+                            <span class="ms-1">${getStatusWithColor(afternoonAttendance.status)}</span>
+                        </div>
+                    </td>
+                    <td class="text-center align-middle">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <span class="small fw-bold">AM:</span> 
+                            <span class="ms-1 ${morningAttendance.lateMinutes > 0 ? 'text-warning' : ''}">${morningAttendance.lateMinutes}</span>
+                            <span class="mx-1">|</span>
+                            <span class="small fw-bold">PM:</span> 
+                            <span class="ms-1 ${afternoonAttendance.lateMinutes > 0 ? 'text-warning' : ''}">${afternoonAttendance.lateMinutes}</span>
+                            <span class="mx-1">|</span>
+                            <span class="small fw-bold">Total:</span> 
+                            <span class="ms-1 ${totalLateMinutes > 0 ? 'text-warning fw-bold' : ''}">${totalLateMinutes}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" 
+                            class="btn btn-sm btn-primary edit-attendance" 
+                            data-student-id="${record.student_id}"
+                            data-student-name="${record.student_name}"
+                            data-morning-in="${record.morning_time_in || ''}"
+                            data-morning-out="${record.morning_time_out || ''}"
+                            data-afternoon-in="${record.afternoon_time_in || ''}"
+                            data-afternoon-out="${record.afternoon_time_out || ''}">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Function to refresh attendance table
+        function refreshAttendanceTable() {
+            if (!attendanceDateSelect.value) return Promise.resolve();
+    
             // Show loading state
             attendanceTableBody.innerHTML = `
                 <tr>
@@ -1506,14 +1723,12 @@
                     </td>
                 </tr>
             `;
-
-            // Fetch attendance data for selected date using the correct route
-            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/${selectedDate}/records`, {
+    
+            return fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/${attendanceDateSelect.value}/records`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
             .then(response => {
@@ -1534,13 +1749,11 @@
                         `;
                         return;
                     }
-
+    
                     attendanceTableBody.innerHTML = data
                         .sort((a, b) => a.student_name.localeCompare(b.student_name))
                         .map(record => createAttendanceRow(record))
                         .join('');
-                } else if (data.error) {
-                    throw new Error(data.error);
                 } else {
                     throw new Error('Invalid data format received');
                 }
@@ -1558,119 +1771,49 @@
                     </tr>
                 `;
             });
-        });
-    
-        // Handle edit button click
-        document.addEventListener('click', function(e) {
-            const editButton = e.target.closest('.edit-attendance');
-            if (editButton) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Get data from button attributes
-                const studentId = editButton.dataset.studentId;
-                const studentName = editButton.dataset.studentName;
-                const morningIn = editButton.dataset.morningIn;
-                const morningOut = editButton.dataset.morningOut;
-                const afternoonIn = editButton.dataset.afternoonIn;
-                const afternoonOut = editButton.dataset.afternoonOut;
-    
-                // Populate edit modal fields
-                document.getElementById('editStudentId').value = studentId;
-                document.getElementById('editDate').value = attendanceDateSelect.value;
-                document.getElementById('editMorningTimeIn').value = morningIn;
-                document.getElementById('editMorningTimeOut').value = morningOut;
-                document.getElementById('editAfternoonTimeIn').value = afternoonIn;
-                document.getElementById('editAfternoonTimeOut').value = afternoonOut;
-    
-                // Update modal title with student name
-                document.getElementById('editAttendanceModalLabel').textContent = 
-                    `Edit Attendance - ${studentName}`;
-    
-                // Show the modal
-                editModal.show();
-            }
-        });
-
-
-        // Handle save changes in edit modal
-        document.getElementById('saveAttendanceChanges').addEventListener('click', function(e) {
-            e.preventDefault();
-            const form = document.getElementById('editAttendanceForm');
-            const formData = new FormData(form);
-            const button = this;
-
-            // Disable button and show loading state
-            button.disabled = true;
-            const originalText = button.innerHTML;
-            button.innerHTML = `
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Saving...
-            `;
-
-            // Send update request using the correct route
-            fetch(`/admin/course/${courseId}/batches/${batchId}/attendance/update`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success message
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Attendance record updated successfully',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-
-                    // Close edit modal
-                    editModal.hide();
-
-                    // Refresh the attendance table
-                    attendanceDateSelect.dispatchEvent(new Event('change'));
-                } else {
-                    throw new Error(data.message || 'Failed to update attendance');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: error.message || 'Failed to update attendance record'
-                });
-            })
-            .finally(() => {
-                // Restore button state
-                button.disabled = false;
-                button.innerHTML = originalText;
-            });
-        });
-    
-        // Reset form when edit modal is hidden
-        document.getElementById('editAttendanceModal').addEventListener('hidden.bs.modal', function () {
-            document.getElementById('editAttendanceForm').reset();
-        });
-    
-        // Prevent view attendance modal from closing when edit modal is opened
-        document.getElementById('editAttendanceModal').addEventListener('show.bs.modal', function (event) {
-            event.stopPropagation();
-        });
+        }
     
         // Initialize with current date if available
         if (attendanceDateSelect.value) {
-            attendanceDateSelect.dispatchEvent(new Event('change'));
+            refreshAttendanceTable();
         }
-    });
     
-</script>
-@endpush
+        // Add date change listener
+        attendanceDateSelect.addEventListener('change', refreshAttendanceTable);
+    });
+    </script>
+    @endpush
+    
+    @push('styles')
+    <style>
+        .is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+    
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+    
+        input[type="time"]:read-only {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+    
+        .time-input.is-invalid {
+            border-color: #dc3545;
+        }
+    </style>
+    @endpush
+    
 
     @push('scripts')
         <script>
@@ -2131,23 +2274,36 @@
             });
     
             // Function to handle time in changes
-            function handleTimeInChange(timeInInput, session) {
-                const row = timeInInput.closest('tr');
-                const studentId = timeInInput.dataset.studentId;
-                const timeOutInput = row.querySelector(`input[name="students[${studentId}][${session}_time_out]"]`);
-    
-                console.log('Time In Changed:', {
-                    session: session,
-                    timeInValue: timeInInput.value,
-                    scheduledOut: schedules[session].out
-                });
-    
+            function handleTimeInChange(timeInInput, timeOutInput, session) {
                 if (timeInInput.value) {
-                    timeOutInput.value = schedules[session].out;
+                    const validation = validateTimeInput(timeInInput.value, session);
+                    
+                    if (validation.isValid) {
+                        // Always set the scheduled time out regardless of validation
+                        timeOutInput.value = schedules[session].out;
+                        
+                        // Validate time in is not greater than time out
+                        const timeInDate = new Date(`2000-01-01T${timeInInput.value}`);
+                        const timeOutDate = new Date(`2000-01-01T${schedules[session].out}`);
+                        
+                        if (timeInDate >= timeOutDate) {
+                            timeInInput.classList.add('is-invalid');
+                            showError(timeInInput, 'Time in cannot be greater than or equal to time out');
+                            // Don't return here - keep the time out value displayed
+                        } else {
+                            timeInInput.classList.remove('is-invalid');
+                            removeError(timeInInput);
+                        }
+                    } else {
+                        timeInInput.classList.add('is-invalid');
+                        timeOutInput.value = schedules[session].out; // Always show scheduled time out
+                        showError(timeInInput, validation.message);
+                    }
                 } else {
-                    timeOutInput.value = '';
+                    timeOutInput.value = ''; // Only clear time out if time in is empty
+                    timeInInput.classList.remove('is-invalid');
+                    removeError(timeInInput);
                 }
-                updateStatus(row);
             }
     
             // Add event listeners for time in fields
@@ -2298,65 +2454,37 @@
                 }
 
                 // Modified handleTimeInChange function
-                function handleTimeInChange(timeInInput, session) {
-                    const row = timeInInput.closest('tr');
-                    const studentId = timeInInput.dataset.studentId;
-                    const timeOutInput = row.querySelector(`input[name="students[${studentId}][${session}_time_out]"]`);
-                    
-                    // Clear previous error styling
-                    timeInInput.classList.remove('is-invalid');
-                    
+                function handleTimeInChange(timeInInput, timeOutInput, session) {
                     if (timeInInput.value) {
-                        // Validate time format
-                        if (!isValidTimeFormat(timeInInput.value)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Invalid Time Format',
-                                text: 'Please enter time in HH:MM format (24-hour)'
-                            });
-                            timeInInput.value = '';
-                            timeOutInput.value = '';
-                            timeInInput.classList.add('is-invalid');
-                            return;
-                        }
-
-                        // Validate time range (AM/PM)
-                        if (!isTimeInRange(timeInInput.value, session)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Invalid Time Range',
-                                text: session === 'morning' ? 
-                                    'Morning time must be before 12:00 PM' : 
-                                    'Afternoon time must be after 12:00 PM'
-                            });
-                            timeInInput.value = '';
-                            timeOutInput.value = '';
-                            timeInInput.classList.add('is-invalid');
-                            return;
-                        }
-
-                        // Validate time in is not greater than time out
-                        const timeInMinutes = convertTo24Hour(timeInInput.value);
-                        const timeOutMinutes = convertTo24Hour(schedules[session].out);
+                        const validation = validateTimeInput(timeInInput.value, session);
                         
-                        if (timeInMinutes >= timeOutMinutes) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Invalid Time',
-                                text: 'Time in cannot be greater than or equal to time out'
-                            });
-                            timeInInput.value = '';
-                            timeOutInput.value = '';
+                        if (validation.isValid) {
+                            const timeOut = calculateTimeOut(timeInInput.value, session);
+                            
+                            // Validate time in is not greater than time out
+                            const timeInDate = new Date(`2000-01-01T${timeInInput.value}`);
+                            const timeOutDate = new Date(`2000-01-01T${timeOut}`);
+                            
+                            if (timeInDate >= timeOutDate) {
+                                timeInInput.classList.add('is-invalid');
+                                timeOutInput.value = '';
+                                showError(timeInInput, 'Time in cannot be greater than or equal to time out');
+                                return;
+                            }
+                            
+                            timeOutInput.value = timeOut;
+                            timeInInput.classList.remove('is-invalid');
+                            removeError(timeInInput);
+                        } else {
                             timeInInput.classList.add('is-invalid');
-                            return;
+                            timeOutInput.value = '';
+                            showError(timeInInput, validation.message);
                         }
-
-                        timeOutInput.value = schedules[session].out;
                     } else {
                         timeOutInput.value = '';
+                        timeInInput.classList.remove('is-invalid');
+                        removeError(timeInInput);
                     }
-                    
-                    updateStatus(row);
                 }
             
     
