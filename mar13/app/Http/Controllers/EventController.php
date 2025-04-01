@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -81,6 +83,34 @@ class EventController extends Controller
                         ->with('success', 'Event updated successfully');
     }
 
+
+    public function updateEvent(Request $request, Event $event)
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'date' => 'required|date',
+                'time' => 'required'
+            ]);
+    
+            // Update event
+            $event->update($validated);
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Event updated successfully!',
+                'event' => $event->fresh()
+            ]);
+    
+        } catch (\Exception $e) {
+            Log::error('Event update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update event: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     /**
      * Remove the specified resource from storage.
      */

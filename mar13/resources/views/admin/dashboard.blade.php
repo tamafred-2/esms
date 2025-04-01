@@ -50,9 +50,9 @@
                                     </div>
                                     <div class="btn-group btn-group-sm">
                                         <button type="button" 
-                                                class="btn btn-outline-primary" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#editEvent{{ $event->id }}">
+                                            class="btn btn-outline-primary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editEvent{{ $event->id }}">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <form action="{{ route('admin.events.destroy', $event->id) }}" 
@@ -101,6 +101,10 @@
                                         <label class="form-label">Event Title</label>
                                         <input type="text" name="title" class="form-control" required>
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description (Optional)</label>
+                                        <textarea name="description" class="form-control" rows="3"></textarea>
+                                    </div>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Date</label>
@@ -112,10 +116,6 @@
                                             <input type="time" name="time" class="form-control" required>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Description (Optional)</label>
-                                        <textarea name="description" class="form-control" rows="3"></textarea>
-                                    </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -126,47 +126,53 @@
                     </div>
                 </div>
                 
-            
-                <!-- Edit Event Modals -->
+                <!-- Edit Event Modal -->
                 @foreach($events as $event)
-                    <div class="modal fade" id="editEvent{{ $event->id }}" tabindex="-1">
-                        <div class="modal-dialog">
+                    <div class="modal fade" id="editEvent{{ $event->id }}" tabindex="-1" aria-labelledby="editEventLabel{{ $event->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Edit Event</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <h5 class="modal-title" id="editEventLabel{{ $event->id }}">Edit Event</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <form action="{{ route('admin.events.update', $event->id) }}" method="POST">
+                                <form id="editEventForm{{ $event->id }}" 
+                                    data-event-id="{{ $event->id }}"
+                                    method="POST" 
+                                    action="{{ route('admin.events.update', $event->id) }}" 
+                                    enctype="multipart/form-data">
                                     @csrf
                                     @method('PUT')
                                     <div class="modal-body">
+                                        <!-- Event Title -->
                                         <div class="mb-3">
-                                            <label class="form-label">Event Title</label>
-                                            <input type="text" name="title" class="form-control" 
-                                                value="{{ $event->title }}" required>
+                                            <label for="title{{ $event->id }}" class="form-label">Event Title</label>
+                                            <input type="text" class="form-control" id="title{{ $event->id }}" 
+                                                   name="title" value="{{ $event->title }}" required>
                                         </div>
+                
+                                        <!-- Description -->
+                                        <div class="mb-3">
+                                            <label for="description{{ $event->id }}" class="form-label">Description</label>
+                                            <textarea class="form-control" id="description{{ $event->id }}" 
+                                                    name="description" rows="3">{{ $event->description }}</textarea>
+                                        </div>
+                
+                                        <!-- Date and Time -->
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Date</label>
-                                                <input type="date" name="date" class="form-control" 
-                                                    value="{{ $event->date }}" 
-                                                    min="{{ date('Y-m-d') }}" required>
+                                                <label for="date{{ $event->id }}" class="form-label">Date</label>
+                                                <input type="date" class="form-control" id="date{{ $event->id }}" 
+                                                       name="date" value="{{ $event->date }}" required>
                                             </div>
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Time</label>
-                                                <input type="time" name="time" class="form-control" 
-                                                    value="{{ \Carbon\Carbon::parse($event->time)->format('H:i') }}" 
-                                                    required>
+                                                <label for="time{{ $event->id }}" class="form-label">Time</label>
+                                                <input type="time" class="form-control" id="time{{ $event->id }}" 
+                                                       name="time" value="{{ $event->time }}" required>
                                             </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Description (Optional)</label>
-                                            <textarea name="description" class="form-control" 
-                                                    rows="3">{{ $event->description }}</textarea>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                         <button type="submit" class="btn btn-primary">Update Event</button>
                                     </div>
                                 </form>
@@ -174,6 +180,7 @@
                         </div>
                     </div>
                 @endforeach
+
             </div>
             
             <!-- Chart Section -->
@@ -552,54 +559,7 @@
         </div>
     </div>
     
-
-    <!-- Add Event Modal -->
-    @foreach($events as $event)
-        <div class="modal fade" id="editEvent{{ $event->id }}" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Event</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form action="{{ route('admin.events.update', $event->id) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Event Title</label>
-                                <input type="text" name="title" class="form-control" 
-                                    value="{{ $event->title }}" required>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Date</label>
-                                    <input type="date" name="date" class="form-control" 
-                                        value="{{ $event->date }}" 
-                                        min="{{ date('Y-m-d') }}" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Time</label>
-                                    <input type="time" name="time" class="form-control" 
-                                        value="{{ \Carbon\Carbon::parse($event->time)->format('H:i') }}" 
-                                        required>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Description (Optional)</label>
-                                <textarea name="description" class="form-control" 
-                                        rows="3">{{ $event->description }}</textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Update Event</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    @endforeach
+    
     <style>
     .school-card {
         transition: transform 0.2s;
@@ -665,6 +625,187 @@
         border-bottom-right-radius: 0.25rem;
     }
     </style>
+
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const handleEventEdit = () => {
+            const editForms = document.querySelectorAll('form[id^="editEventForm"]');
+            
+            editForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const eventId = this.dataset.eventId;
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    
+                    formData.append('_method', 'PUT');
+                    
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hide modal
+                            const modal = bootstrap.Modal.getInstance(document.querySelector(`#editEvent${eventId}`));
+                            modal.hide();
+    
+                            // Show success message and refresh page
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message || 'Event updated successfully!',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Something went wrong');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'Failed to update event',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    })
+                    .finally(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = 'Update Event';
+                    });
+                });
+            });
+        };
+    
+        // Initialize edit functionality
+        handleEventEdit();
+    });
+    </script>
+    @endpush
+    
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const handleSchoolEdit = () => {
+            const editForms = document.querySelectorAll('form[id^="editSchoolForm"]');
+            
+            editForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const schoolId = this.dataset.schoolId;
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    
+                    formData.append('_method', 'PUT');
+                    
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hide modal
+                            const modal = bootstrap.Modal.getInstance(document.querySelector(`#editSchool${schoolId}`));
+                            modal.hide();
+
+                            // Show success message and refresh page
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Refresh the page after the success message
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Something went wrong');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'Failed to update school',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    })
+                    .finally(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = 'Update School';
+                    });
+                });
+            });
+        };
+
+        // Initialize edit functionality
+        handleSchoolEdit();
+
+        // Image preview function
+        const handleImagePreview = () => {
+            const imageInputs = document.querySelectorAll('input[type="file"][id^="logo_path"]');
+            
+            imageInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        const previewContainer = this.closest('.mb-3').querySelector('.preview-container') || this.parentElement.querySelector('.mt-2');
+                        
+                        reader.onload = function(e) {
+                            const previewHtml = `
+                                <div class="mt-2">
+                                    <small class="text-muted">New logo preview:</small>
+                                    <img src="${e.target.result}" 
+                                        alt="Logo Preview" 
+                                        class="img-thumbnail" 
+                                        style="height: 50px">
+                                </div>`;
+                            
+                            if (previewContainer) {
+                                previewContainer.innerHTML = previewHtml;
+                            } else {
+                                input.insertAdjacentHTML('afterend', previewHtml);
+                            }
+                        };
+                        
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+        };
+
+        // Initialize image preview
+        handleImagePreview();
+    });
+    </script>
+    @endpush
+
 
     @push('scripts')
     <script>

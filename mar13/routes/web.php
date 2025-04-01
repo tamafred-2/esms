@@ -71,7 +71,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::post('/', [DashboardController::class, 'storeEvent'])->name('store');
             Route::get('/create', [DashboardController::class, 'createEvent'])->name('create');
             Route::get('/{event}/edit', [DashboardController::class, 'editEvent'])->name('edit');
-            Route::put('/{event}', [DashboardController::class, 'updateEvent'])->name('update');
+            Route::put('/{event}', [EventController::class, 'updateEvent'])->name('update');
             Route::delete('/{event}', [EventController::class, 'destroyEvent'])->name('destroy');
         });
 
