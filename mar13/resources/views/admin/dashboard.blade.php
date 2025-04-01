@@ -316,10 +316,12 @@
     
                             <div class="card-footer bg-transparent p-2">
                                 <div class="btn-group w-100">
-                                    <a href="{{ route('admin.school.edit', $school->id) }}" 
-                                       class="btn btn-outline-primary btn-sm">
+                                    <button type="button" 
+                                            class="btn btn-outline-primary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editSchool{{ $school->id }}">
                                         <i class="bi bi-pencil"></i>
-                                    </a>
+                                    </button>
                                     <a href="{{ route('admin.school.show', $school->id) }}" 
                                        class="btn btn-outline-info btn-sm">
                                         <i class="bi bi-eye"></i>
@@ -338,6 +340,89 @@
                                         </button>
                                     </form>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="editSchool{{ $school->id }}" tabindex="-1" aria-labelledby="editSchoolLabel{{ $school->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editSchoolLabel{{ $school->id }}">Edit School</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form id="editSchoolForm{{ $school->id }}" data-school-id="{{ $school->id }}"method="POST" action="{{ route('admin.school.update', $school->id) }}" enctype="multipart/form-data">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="modal-body">
+                                        <!-- School Name -->
+                                        <div class="mb-3">
+                                            <label for="name{{ $school->id }}" class="form-label">School Name</label>
+                                            <input type="text" class="form-control" id="name{{ $school->id }}" name="name" 
+                                                value="{{ $school->name }}" required>
+                                        </div>
+
+                                        <!-- Address Section -->
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                School Address
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="street_number{{ $school->id }}" class="form-label">Street Number / Street Address</label>
+                                                        <input type="text" class="form-control" id="street_number{{ $school->id }}" 
+                                                            name="street_number" value="{{ $school->street_number }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="barangay{{ $school->id }}" class="form-label">Barangay</label>
+                                                        <input type="text" class="form-control" id="barangay{{ $school->id }}" 
+                                                            name="barangay" value="{{ $school->barangay }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="city{{ $school->id }}" class="form-label">Municipal/City</label>
+                                                        <input type="text" class="form-control" id="city{{ $school->id }}" 
+                                                            name="city" value="{{ $school->city }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="province{{ $school->id }}" class="form-label">Province</label>
+                                                        <input type="text" class="form-control" id="province{{ $school->id }}" 
+                                                            name="province" value="{{ $school->province }}" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Contact Number -->
+                                        <div class="mb-3">
+                                            <label for="contact_number{{ $school->id }}" class="form-label">School Contact Number</label>
+                                            <input type="text" class="form-control" id="contact_number{{ $school->id }}" 
+                                                name="contact_number" value="{{ $school->contact_number }}"
+                                                pattern="[0-9]+" title="Please enter only numbers" required>
+                                        </div>
+
+                                        <!-- Logo -->
+                                        <div class="mb-3">
+                                            <label for="logo_path{{ $school->id }}" class="form-label">School Logo</label>
+                                            <input type="file" class="form-control" id="logo_path{{ $school->id }}" 
+                                                name="logo_path" accept="image/*">
+                                            <small class="text-muted">Optional: Upload new school logo (PNG, JPG, JPEG)</small>
+                                            @if($school->logo_path)
+                                                <div class="mt-2">
+                                                    <small class="text-muted">Current logo:</small>
+                                                    <img src="{{ asset('storage/' . $school->logo_path) }}" 
+                                                        alt="Current Logo" class="img-thumbnail" style="height: 50px">
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Update School</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -581,6 +666,116 @@
     }
     </style>
 
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const handleSchoolEdit = () => {
+            const editForms = document.querySelectorAll('form[id^="editSchoolForm"]');
+            
+            editForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const schoolId = this.dataset.schoolId;
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    
+                    formData.append('_method', 'PUT');
+                    
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hide modal
+                            const modal = bootstrap.Modal.getInstance(document.querySelector(`#editSchool${schoolId}`));
+                            modal.hide();
+    
+                            // Show success message and refresh page
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Refresh the page after the success message
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Something went wrong');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'Failed to update school',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    })
+                    .finally(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = 'Update School';
+                    });
+                });
+            });
+        };
+    
+        // Initialize edit functionality
+        handleSchoolEdit();
+    
+        // Image preview function
+        const handleImagePreview = () => {
+            const imageInputs = document.querySelectorAll('input[type="file"][id^="logo_path"]');
+            
+            imageInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        const previewContainer = this.closest('.mb-3').querySelector('.preview-container') || this.parentElement.querySelector('.mt-2');
+                        
+                        reader.onload = function(e) {
+                            const previewHtml = `
+                                <div class="mt-2">
+                                    <small class="text-muted">New logo preview:</small>
+                                    <img src="${e.target.result}" 
+                                         alt="Logo Preview" 
+                                         class="img-thumbnail" 
+                                         style="height: 50px">
+                                </div>`;
+                            
+                            if (previewContainer) {
+                                previewContainer.innerHTML = previewHtml;
+                            } else {
+                                input.insertAdjacentHTML('afterend', previewHtml);
+                            }
+                        };
+                        
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+        };
+    
+        // Initialize image preview
+        handleImagePreview();
+    });
+    </script>
+    @endpush
+    
+    
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {

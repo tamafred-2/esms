@@ -363,6 +363,53 @@ public function storeEvent(Request $request)
         return view('admin.school.edit', compact('school', 'icon', 'button'));
     }
 
+    public function updateSchool(Request $request, School $school)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'street_number' => 'required|string|max:255',
+                'barangay' => 'required|string|max:255',
+                'city' => 'required|string|max:255',
+                'province' => 'required|string|max:255',
+                'contact_number' => 'required|regex:/^[0-9]+$/|min:7|max:15',
+                'logo_path' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            ]);
+
+            // Remove logo_path from validated data if no new file is uploaded
+            if (!$request->hasFile('logo_path')) {
+                unset($validated['logo_path']);
+            }
+
+            // Handle logo upload if a new file is provided
+            if ($request->hasFile('logo_path')) {
+                // Delete old logo if it exists
+                if ($school->logo_path && Storage::disk('public')->exists($school->logo_path)) {
+                    Storage::disk('public')->delete($school->logo_path);
+                }
+                
+                // Store new logo
+                $validated['logo_path'] = $request->file('logo_path')->store('school-logos', 'public');
+            }
+
+            // Update school with validated data
+            $school->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'School updated successfully!',
+                'school' => $school->fresh() // Return fresh instance of the school
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('School update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update school: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function update(Request $request, School $school)
     {
         try {

@@ -87,7 +87,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/create', [DashboardController::class, 'createSchool'])->name('create');
             Route::post('/', [DashboardController::class, 'storeSchool'])->name('store');
             Route::get('/{school}/edit', [DashboardController::class, 'editSchool'])->name('edit');
-            Route::put('/{school}', [DashboardController::class, 'update'])->name('update');
+            Route::put('/{school}', [DashboardController::class, 'updateSchool'])->name('update');
             Route::delete('/{school}', [DashboardController::class, 'destroySchool'])->name('destroy');
             Route::get('/show/{school}', [DashboardController::class, 'showSchool'])->name('show');
             Route::get('/{school}/students', [DashboardController::class, 'students'])->name('students');
