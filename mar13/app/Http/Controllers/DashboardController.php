@@ -640,9 +640,9 @@ public function storeEvent(Request $request)
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
                 'contact_number' => ['required', 'string', 'max:20'],
-                'street_number' => ['required', 'string', 'max:255'],
+                'street_address' => ['required', 'string', 'max:255'],
                 'barangay' => ['required', 'string', 'max:255'],
-                'city' => ['required', 'string', 'max:255'],
+                'municipality' => ['required', 'string', 'max:255'],
                 'province' => ['required', 'string', 'max:255'],
             ]);
     
@@ -653,9 +653,9 @@ public function storeEvent(Request $request)
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'contact_number' => $validated['contact_number'],
-                'street_number' => $validated['street_number'],
+                'street_address' => $validated['street_address'],
                 'barangay' => $validated['barangay'],
-                'city' => $validated['city'],
+                'municipality' => $validated['municipality'],
                 'province' => $validated['province'],
                 'usertype' => $validated['usertype'],
             ]);

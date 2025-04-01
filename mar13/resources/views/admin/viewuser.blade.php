@@ -108,8 +108,14 @@
                                     <td>{{ $user->email }}</td>
                                     <td>{{ $user->contact_number }}</td>
                                     <td>
-                                        {{ $user->street_number }}, {{ $user->barangay }}, 
-                                        {{ $user->city }}, {{ $user->province }}
+                                        @if($user->street_address || $user->barangay || $user->municipality || $user->province)
+                                            {{ $user->street_address }}
+                                            @if($user->barangay), {{ $user->barangay }}@endif
+                                            @if($user->municipality), {{ $user->municipality }}@endif
+                                            @if($user->province), {{ $user->province }}@endif
+                                        @else
+                                            <span class="text-muted">No address provided</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $user->usertype === 'admin' ? 'danger' : 'primary' }}">
@@ -239,18 +245,17 @@
                                         @enderror
                                     </div>
     
-                                    <!-- Address Fields -->
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="street_number" class="form-label">Street Number</label>
+                                                <label for="street_address" class="form-label">Street Address</label>
                                                 <input type="text" 
-                                                       class="form-control @error('street_number') is-invalid @enderror"
-                                                       id="street_number" 
-                                                       name="street_number" 
-                                                       value="{{ old('street_number') }}" 
-                                                       required>
-                                                @error('street_number')
+                                                    class="form-control @error('street_address') is-invalid @enderror"
+                                                    id="street_address" 
+                                                    name="street_address"
+                                                    value="{{ old('street_address') }}" 
+                                                    required>
+                                                @error('street_address')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
@@ -259,29 +264,29 @@
                                             <div class="form-group">
                                                 <label for="barangay" class="form-label">Barangay</label>
                                                 <input type="text" 
-                                                       class="form-control @error('barangay') is-invalid @enderror"
-                                                       id="barangay" 
-                                                       name="barangay" 
-                                                       value="{{ old('barangay') }}" 
-                                                       required>
+                                                    class="form-control @error('barangay') is-invalid @enderror"
+                                                    id="barangay" 
+                                                    name="barangay" 
+                                                    value="{{ old('barangay') }}" 
+                                                    required>
                                                 @error('barangay')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
                                         </div>
                                     </div>
-    
+                                    
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="city" class="form-label">Municipality/City</label>
+                                                <label for="municipality" class="form-label">Municipality/City</label>
                                                 <input type="text" 
-                                                       class="form-control @error('city') is-invalid @enderror"
-                                                       id="city" 
-                                                       name="city" 
-                                                       value="{{ old('city') }}" 
+                                                       class="form-control @error('municipality') is-invalid @enderror"
+                                                       id="municipality" 
+                                                       name="municipality"
+                                                       value="{{ old('municipality') }}" 
                                                        required>
-                                                @error('city')
+                                                @error('municipality')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
@@ -301,6 +306,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
     
                                     <!-- Email -->
                                     <div class="form-group mb-3">
@@ -367,65 +373,113 @@
             
             // Get form data
             const formData = new FormData(this);
+            
+            // Convert street_number to street_address if needed
+            if (formData.has('street_number')) {
+                const streetValue = formData.get('street_number');
+                formData.delete('street_number');
+                formData.append('street_address', streetValue);
+            }
     
             // Submit form using fetch
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
-                    // Show success message
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'User created successfully',
-                        icon: 'success',
-                        confirmButtonColor: '#0d6efd'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // Reload the page to show new user
-                            window.location.reload();
-                        }
-                    });
+                // Show success message
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'User created successfully',
+                    icon: 'success',
+                    confirmButtonColor: '#0d6efd'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Reload the page to show new user
+                        window.location.reload();
+                    }
+                });
     
-                    // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
-                    modal.hide();
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+                modal.hide();
+            })
+            .catch(error => {
+                if (error.errors) {
+                    // Validation errors
+                    let errorMessage = '<ul class="list-unstyled">';
+                    Object.values(error.errors).forEach(errors => {
+                        errors.forEach(err => {
+                            // Replace "street number" with "street address" in error messages
+                            const fixedError = err.replace('street number', 'street address');
+                            errorMessage += `<li>${fixedError}</li>`;
+                        });
+                    });
+                    errorMessage += '</ul>';
+    
+                    Swal.fire({
+                        title: 'Validation Error',
+                        html: errorMessage,
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
                 } else {
-                    // Show error message
+                    // General error
                     Swal.fire({
                         title: 'Error!',
-                        text: data.message || 'Something went wrong',
+                        text: error.message || 'Something went wrong',
                         icon: 'error',
                         confirmButtonColor: '#dc3545'
                     });
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Something went wrong',
-                    icon: 'error',
-                    confirmButtonColor: '#dc3545'
-                });
             });
         });
     
         // Reset form when modal is closed
         document.getElementById('createUserModal').addEventListener('hidden.bs.modal', function () {
             document.getElementById('createUserForm').reset();
+            // Remove any validation error messages
+            document.querySelectorAll('.is-invalid').forEach(element => {
+                element.classList.remove('is-invalid');
+            });
+            document.querySelectorAll('.invalid-feedback').forEach(element => {
+                element.remove();
+            });
+        });
+    
+        // Instant validation for password confirmation
+        document.getElementById('password_confirmation').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            if (this.value !== password) {
+                this.classList.add('is-invalid');
+                if (!this.nextElementSibling) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Passwords do not match';
+                    this.parentNode.appendChild(feedback);
+                }
+            } else {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.remove();
+                }
+            }
         });
     </script>
     @endpush
     
-
-    <!-- Keep your existing modals here -->
-
     @push('scripts')
     <script>
         // Instant search and filter functionality
